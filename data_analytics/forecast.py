@@ -2,7 +2,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import math
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from influxdb_client import InfluxDBClient
 from statsmodels.tsa.arima.model import ARIMA
 from sklearn.metrics import mean_squared_error
@@ -56,10 +56,10 @@ while True:
         df_indoor = get_data_from_influx("indoor")
         df_outdoor = get_data_from_influx("outdoor")
 
-        if len(df_indoor) < history_size or len(df_outdoor) < history_size:
-            print(f"Attesa di almeno {history_size} campioni...")
-            time.sleep(10)
-            continue
+        # if len(df_indoor) < history_size or len(df_outdoor) < history_size:
+        #     print(f"Attesa di almeno {history_size} campioni...")
+        #     time.sleep(10)
+        #     continue
 
         # history_indoor = df_indoor["Value"].iloc[-history_size:].tolist()
         # history_outdoor = df_outdoor["Value"].iloc[-history_size:].tolist()
@@ -69,12 +69,21 @@ while True:
         pred_indoor = arima_forecast(history_indoor, steps=n_predictions)
         pred_outdoor = arima_forecast(history_outdoor, steps=n_predictions)
 
-        print(f'Predicted Indoor: {pred_indoor}°C | Predicted Outdoor: {list(pred_outdoor)}°C')
+        # actual_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        for i in range(n_predictions):
+            time_offset = measure_every_seconds * (i + 1)
+            future_time = (df_indoor.last_valid_index() + timedelta(seconds=time_offset)).strftime("%Y-%m-%d %H:%M:%S")
+            print(f"Data: {future_time} | Previsto Indoor: {pred_indoor[i]:.2f}°C | Previsto Outdoor: {pred_outdoor[i]:.2f}°C | Offset: {time_offset} secondi")
+
+        print("")
+        # print(f'Predicted Indoor: {pred_indoor}°C | Predicted Outdoor: {list(pred_outdoor)}°C')
 
         for i in range(n_predictions):
             diff = abs(pred_indoor[i] - pred_outdoor[i])
+            time_offset = measure_every_seconds * (i + 1)
             if diff < threshold:
-                print(f'⚠️ Possibile spreco energetico rilevato tra {measure_every_seconds*i} secondi! Differenza: {diff:.2f}°C')
+                print(f'⚠️ Possibile spreco energetico rilevato tra {time_offset} secondi! Differenza: {diff:.2f}°C')
 
         time.sleep(30)  # Attesa prima del prossimo ciclo
     except Exception as e:

@@ -40,7 +40,7 @@ async def receive_sensor_data(data: SensorData):
             point_outdoor = Point("temperature").tag("location", "outdoor").field("value", data.tempOutdoor)
             write_api.write(bucket=INFLUXDB_BUCKET, record=point_outdoor)
         if data.humIndoor:
-            point_outdoor = Point("humidity").tag("location", "outdoor").field("value", data.humIndoor)
+            point_outdoor = Point("humidity").tag("location", "outdoor").field("value", data.humOutdoor)
             write_api.write(bucket=INFLUXDB_BUCKET, record=point_outdoor)
 
         return {"status": "Data written to InfluxDB"}
