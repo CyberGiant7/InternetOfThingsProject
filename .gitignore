@@ -317,16 +317,6 @@ pyrightconfig.json
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,pycharm,python,jupyternotebooks
-data_analytics/__pycache__/forecast.cpython-312.pyc
-proxy/__pycache__/data_proxy.cpython-312.pyc
-proxy/.idea/vcs.xml
-data_analytics/__pycache__/forecast.cpython-312.pyc
-data_analytics/.idea/.gitignore
-data_analytics/.idea/data_analytics.iml
-data_analytics/.idea/deployment.xml
-data_analytics/.idea/misc.xml
-data_analytics/.idea/modules.xml
-data_analytics/.idea/vcs.xml
-data_analytics/.idea/inspectionProfiles/profiles_settings.xml
-data_analytics/.idea/inspectionProfiles/Project_Default.xml
-ì
+*/__pycache__/forecast.cpython-312.pyc
+*/.idea/
+
