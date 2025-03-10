@@ -1,5 +1,7 @@
 import time
-from datetime import timedelta
+from datetime import timedelta, datetime
+import os
+import csv
 
 import pandas as pd
 from influxdb_client import InfluxDBClient
@@ -19,22 +21,44 @@ query_api = client.query_api()
 threshold = 1.0  # Differenza in gradi Celsius che indica uno spreco
 measure_every_seconds = 30
 
+# Nome del file in cui salvare le previsioni
+FORECASTS_FILE = "forecasts.csv"
+
+def save_forecast_row(forecast_timestamp, predicted_value, generation_time):
+    """
+    Salva una riga di previsione in un file CSV.
+    forecast_timestamp: timestamp per cui è valida la previsione (stringa)
+    predicted_value: valore previsto (float)
+    generation_time: orario in cui la previsione è stata generata (stringa)
+    """
+    file_exists = os.path.isfile(FORECASTS_FILE)
+    with open(FORECASTS_FILE, "a", newline="") as csvfile:
+        fieldnames = ["forecast_timestamp", "predicted_value", "generation_time"]
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow({
+            "forecast_timestamp": forecast_timestamp,
+            "predicted_value": predicted_value,
+            "generation_time": generation_time
+        })
 
 def query_data():
     """
-    Recupera gli ultimi 60 minuti di dati per le temperature interna ed esterna
+    Recupera gli ultimi 24 ore di dati per le temperature interna ed esterna
     e li unisce in un unico DataFrame.
     """
+    # Nota: nel range puoi definire il periodo che preferisci
     query_indoor = f'''from(bucket: "{INFLUXDB_BUCKET}")
-                |> range(start: -24h, stop: 2025-03-07T15:15:00Z)
-                |> filter(fn: (r) => r._measurement == "temperature" and r.location == "{'indoor'}")
+                |> range(start: -24h)
+                |> filter(fn: (r) => r._measurement == "temperature" and r.location == "indoor")
                 |> aggregateWindow(every: {measure_every_seconds}s, fn: mean, createEmpty: false)
                 |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
                 |> keep(columns: ["_time", "value"])
                 '''
     query_outdoor = f'''from(bucket: "{INFLUXDB_BUCKET}")
-                |> range(start: -24h, stop: 2025-03-07T15:15:00Z)
-                |> filter(fn: (r) => r._measurement == "temperature" and r.location == "{'outdoor'}")
+                |> range(start: -24h)
+                |> filter(fn: (r) => r._measurement == "temperature" and r.location == "outdoor")
                 |> aggregateWindow(every: {measure_every_seconds}s, fn: mean, createEmpty: false)
                 |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
                 |> keep(columns: ["_time", "value"])
@@ -58,10 +82,9 @@ def query_data():
 
     # Imposta la frequenza dell'indice per supportare il modello ARIMA
     df = df.asfreq(f'{measure_every_seconds}s')
-    df = df.ffill()  # Opzionale: gestisce eventuali valori mancanti
+    df = df.ffill()  # Gestione eventuali valori mancanti
 
     return df
-
 
 def run_realtime_prediction():
     while True:
@@ -89,17 +112,26 @@ def run_realtime_prediction():
             best_order = auto_model.order
             print(f"Parametri ARIMAX aggiornati: {best_order}")
 
-            # Previsione: fornisci l'ultimo valore conosciuto della temperatura esterna come esogeno
-            exog_forecast = outdoor_series.iloc[-1:]
+            # Previsione per i prossimi 60 step (cioè 60 * measure_every_seconds secondi nel futuro)
+            # In questo esempio usiamo auto_model per generare la previsione
+            exog_forecast = outdoor_series.iloc[-1:]  # per semplificare, usiamo l'ultimo valore anche per tutti gli step
             forecast = auto_model.predict(n_periods=60, X=exog_forecast)
+            forecast_generation_time = df.last_valid_index()  # tempo dell'ultimo dato reale
+            forecast_generation_str = forecast_generation_time.strftime("%Y-%m-%d %H:%M:%S")
+
+            # Salva ogni previsione con il relativo timestamp futuro
             for i in range(60):
                 time_offset = measure_every_seconds * (i + 1)
-                future_time = (df.last_valid_index() + timedelta(seconds=time_offset)).strftime("%Y-%m-%d %H:%M:%S")
-                print(f"Data: {future_time} | Previsto Indoor: {forecast.iloc[i]:.2f}°C | Offset: {time_offset} secondi")
+                future_time = forecast_generation_time + timedelta(seconds=time_offset)
+                future_time_str = future_time.strftime("%Y-%m-%d %H:%M:%S")
+                predicted_val = forecast[i]
+                save_forecast_row(future_time_str, predicted_val, forecast_generation_str)
+                # Puoi anche stampare le previsioni se vuoi
+                print(f"Data: {future_time_str} | Previsto Indoor: {predicted_val:.2f}°C | Generato: {forecast_generation_str}")
 
-            predicted_value = forecast.array[-1]
+            # In questo esempio, prendo l'ultima previsione come riferimento per l'allarme
+            predicted_value = forecast.iloc[-1]
 
-            # Ottieni l'ultimo valore reale della temperatura interna
             actual_value = indoor_series.iloc[-1]
             past_value = indoor_series.iloc[-60]
             diff_past = predicted_value - past_value
@@ -117,9 +149,8 @@ def run_realtime_prediction():
         except Exception as e:
             print("Errore durante la previsione:", e)
 
-        # Attende 60 secondi prima della prossima iterazione
+        # Attende 120 secondi prima della prossima iterazione
         time.sleep(120)
-
 
 if __name__ == '__main__':
     run_realtime_prediction()
