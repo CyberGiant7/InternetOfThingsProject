@@ -30,7 +30,7 @@ PubSubClient client(espClient);
 
 // Variabili globali
 bool acquisitionActive = true;
-int samplingInterval = 5000; // Intervallo di campionamento (5 secondi)
+unsigned long samplingInterval = 5000; // Intervallo di campionamento (5 secondi)
 
 void setup() {
   Serial.begin(115200);
@@ -119,6 +119,16 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
       digitalWrite(LED_PIN, LOW);
     }
   }
+
+  // sampling_rate
+  if (String(topic) == "hvac/sampling_rate") {
+    try {
+      samplingInterval = message.toInt();
+      Serial.println("Intervallo di campionamento impostato a " + String(samplingInterval) + " ms");
+    } catch (const String e) {
+      Serial.println("Errore nella conversione dell'intervallo di campionamento");
+    }
+  }
 }
 
 void reconnectMQTT() {
@@ -131,6 +141,8 @@ void reconnectMQTT() {
       Serial.println("Sottoscritto a hvac/control");
       client.subscribe("hvac/led");
       Serial.println("Sottoscritto a hvac/led");
+      client.subscribe("hvac/sampling_rate");
+      Serial.println("Sottoscritto a hvac/sampling_rate");
     } else {
       Serial.print("Connessione fallita, rc=");
       Serial.print(client.state());
