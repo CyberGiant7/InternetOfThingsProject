@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoraggio Temperature</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        #alert {
+            color: red;
+            font-weight: bold;
+            display: none;
+        }
+        .nav-links {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .nav-links a {
+            margin: 0 10px;
+            color: #3498db;
+            text-decoration: none;
+        }
+        .nav-links a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Monitoraggio Temperature</h1>
+        
+        <div class="nav-links">
+            <a href="/">Dashboard Temperature</a> | 
+            <a href="/performance">Metriche di Performance</a>
+        </div>
+    <p>Temperatura interna: <span id="indoor">--</span>°C</p>
+    <p>Temperatura esterna: <span id="outdoor">--</span>°C</p>
+    <p id="alert">⚠️ Spreco energetico rilevato! ⚠️</p>
+    <canvas id="temperatureChart" width="400" height="200"></canvas>
+
+    </div>
+    <script>
+        let temperatureChart;
+
+        async function fetchData() {
+            const response = await fetch('/data');
+            const data = await response.json();
+
+            document.getElementById("indoor").textContent = data.indoor.length > 0 ? data.indoor[data.indoor.length - 1].toFixed(2) : "--";
+            document.getElementById("outdoor").textContent = data.outdoor.length > 0 ? data.outdoor[data.outdoor.length - 1].toFixed(2) : "--";
+
+            if (data.alert === "True") {
+                document.getElementById("alert").style.display = "block";
+            } else {
+                document.getElementById("alert").style.display = "none";
+            }
+
+            updateChart(data);
+        }
+
+        function updateChart(data) {
+            const ctx = document.getElementById("temperatureChart").getContext("2d");
+
+            if (!temperatureChart) {
+                temperatureChart = new Chart(ctx, {
+                    type: "line",
+                    data: {
+                        labels: data.timestamps.concat(data.prediction_timestamps),
+                        datasets: [
+                            {
+                                label: "Temperatura Interna",
+                                data: data.indoor.concat(new Array(data.predictions.length).fill(null)),
+                                borderColor: "blue",
+                                fill: false
+                            },
+                            {
+                                label: "Temperatura Esterna",
+                                data: data.outdoor.concat(new Array(data.predictions.length).fill(null)),
+                                borderColor: "green",
+                                fill: false
+                            },
+                            {
+                                label: "Previsione (30 min)",
+                                data: new Array(data.indoor.length).fill(null).concat(data.predictions),
+                                borderColor: "red",
+                                borderDash: [5, 5],
+                                fill: false
+                            }
+                        ]
+                    },
+                    options: {
+                        scales: {
+                            x: {
+                                ticks: {
+                                    maxTicksLimit: 10
+                                }
+                            },
+                            y: {
+                                beginAtZero: false
+                            }
+                        }
+                    }
+                });
+            } else {
+                temperatureChart.data.labels = data.timestamps.concat(data.prediction_timestamps);
+                temperatureChart.data.datasets[0].data = data.indoor.concat(new Array(data.predictions.length).fill(null));
+                temperatureChart.data.datasets[1].data = data.outdoor.concat(new Array(data.predictions.length).fill(null));
+                temperatureChart.data.datasets[2].data = new Array(data.indoor.length).fill(null).concat(data.predictions);
+                temperatureChart.update();
+            }
+        }
+
+        setInterval(fetchData, 5000);
+        fetchData();
+    </script>
+</body>
+</html>
