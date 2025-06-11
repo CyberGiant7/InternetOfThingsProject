@@ -1,0 +1,1 @@
+{"forecast_metrics": {"mae": [0.29106006469216233], "mse": [0.2571918682110322], "rmse": [0.5071408760995628], "timestamps": ["2025-03-11 20:17:57"]}, "latency_metrics": {"latency_ms": [], "timestamps": []}}

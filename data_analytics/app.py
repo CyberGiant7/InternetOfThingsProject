@@ -22,7 +22,7 @@ query_api = client.query_api()
 latest_temperatures = {"indoor": None, "outdoor": None, "predictions": {}, "alert": "False"}
 threshold = 1.0  # Differenza di temperatura per considerare uno spreco
 measure_every_seconds = 30
-forecast_horizon = 60
+forecast_horizon = 60 
 
 latest_temperatures = {
     "timestamps": [],
@@ -66,9 +66,9 @@ def update_predictions():
     global latest_temperatures
     while True:
         df = query_data()
-        if df.empty or len(df) < 10:
-            time.sleep(60)
-            continue
+        # if df.empty or len(df) < 10:
+        #     time.sleep(60)
+        #     continue
 
         indoor_series = df['indoor']
         outdoor_series = df['outdoor']
@@ -102,7 +102,7 @@ def update_predictions():
             # latest_temperatures["predictions"] = forecast.to_dict()
             #
             # latest_temperatures["alert"] = str(abs(forecast.iloc[-1]- indoor_series.iloc[-1]) > threshold)
-            print(latest_temperatures)
+            # print(latest_temperatures)
         except Exception as e:
             print("Errore durante la previsione:", e)
 
@@ -148,4 +148,4 @@ def get_performance():
 
 if __name__ == '__main__':
     threading.Thread(target=update_predictions, daemon=True).start()
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)

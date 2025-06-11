@@ -125,7 +125,7 @@ def run_realtime_prediction():
                 future_time = forecast_generation_time + timedelta(seconds=time_offset)
                 future_time_str = future_time.strftime("%Y-%m-%d %H:%M:%S")
                 predicted_val = forecast[i]
-                save_forecast_row(future_time_str, predicted_val, forecast_generation_str)
+                # save_forecast_row(future_time_str, predicted_val, forecast_generation_str)
                 # Puoi anche stampare le previsioni se vuoi
                 print(f"Data: {future_time_str} | Previsto Indoor: {predicted_val:.2f}°C | Generato: {forecast_generation_str}")
 
