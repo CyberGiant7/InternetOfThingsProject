@@ -1,6 +1,6 @@
 from influxdb_client import InfluxDBClient, Point
 import pandas as pd
-from datetime import timedelta
+from datetime import timedelta, datetime
 from .config import INFLUXDB_CONFIG
 
 class InfluxDBManager:
@@ -27,6 +27,16 @@ class InfluxDBManager:
         df.set_index('_time', inplace=True)
         df = df.asfreq(f'{measure_every_seconds}s')
         return df
+    
+    def store_prediction(self, predicted_temp, predicted_timestamp, forecast_horizon):
+        timestamp = datetime.strptime(predicted_timestamp, "%Y-%m-%d %H:%M:%S") - timedelta(hours=2)
+        
+        point = Point("temperature_predictions") \
+            .tag("forecast_horizon", forecast_horizon) \
+            .field("predicted_temperature", predicted_temp) \
+            .time(timestamp)
+        
+        self.write_api.write(bucket=INFLUXDB_CONFIG["bucket"], record=point)
 
     def log_alarm_event(self, indoor_temp, predicted_temp):
         point = Point("temperature_alarms") \
@@ -35,3 +45,4 @@ class InfluxDBManager:
             .field("temperature_difference", abs(predicted_temp - indoor_temp))
         
         self.write_api.write(bucket=INFLUXDB_CONFIG["bucket"], record=point)
+    

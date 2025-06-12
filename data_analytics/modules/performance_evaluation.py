@@ -28,16 +28,36 @@ PERFORMANCE_LOG_FILE = "performance_metrics.json"
 class PerformanceEvaluator:
     def __init__(self):
         self.forecast_metrics = {
-            "mae": [],
-            "mse": [],
-            "rmse": [],
-            "timestamps": []
+            "1min": {
+                "mae": [],
+                "mse": [],
+                "rmse": [],
+                "timestamps": []
+            },
+            "10min": {
+                "mae": [],
+                "mse": [],
+                "rmse": [],
+                "timestamps": []
+            },
+            "20min": {
+                "mae": [],
+                "mse": [],
+                "rmse": [],
+                "timestamps": []
+            },
+            "30min": {
+                "mae": [],
+                "mse": [],
+                "rmse": [],
+                "timestamps": []
+            }
         }
         self.latency_metrics = {
             "latency_ms": [],
             "timestamps": []
         }
-        self.load_metrics()
+        # self.load_metrics()
 
     def load_metrics(self):
         """Carica le metriche salvate dal file JSON se esiste."""
@@ -93,56 +113,89 @@ class PerformanceEvaluator:
         closest_idx = df['time_diff'].idxmin()
         return df.loc[closest_idx, 'value']
 
-    def evaluate_forecast_accuracy(self, forecasts_file=FORECASTS_FILE):
-        """Valuta l'accuratezza delle previsioni confrontandole con i valori reali."""
+    def evaluate_forecast_accuracy(self, time_window_minutes=60):
+        """Valuta l'accuratezza delle previsioni confrontandole con i valori reali per ogni orizzonte temporale."""
         try:
-            df_forecast = pd.read_csv(forecasts_file)
-            df_forecast["forecast_timestamp"] = pd.to_datetime(df_forecast["forecast_timestamp"])
-
-            actual_values = []
-            for forecast_time in df_forecast["forecast_timestamp"]:
-                actual_value = self.get_actual_value(forecast_time)
-                actual_values.append(actual_value)
-
-            df_forecast["actual_value"] = actual_values
-            df_forecast.dropna(inplace=True)  # Rimuove i valori senza corrispondenza
-
-            if df_forecast.empty:
-                print("Nessun dato valido per la valutazione delle previsioni.")
+            # Query predictions from InfluxDB
+            query = f'''
+            from(bucket: "{INFLUXDB_BUCKET}")
+                |> range(start: -{time_window_minutes}m)
+                |> filter(fn: (r) => r._measurement == "temperature_predictions")
+                |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
+                |> keep(columns: ["_time", "predicted_temperature", "forecast_horizon"])
+            '''
+            df_predictions = query_api.query_data_frame(query)
+            
+            if df_predictions.empty:
+                print("Nessuna previsione trovata nel periodo specificato.")
                 return None
 
-            # Calcolo metriche di accuratezza
-            mae = mean_absolute_error(df_forecast["actual_value"], df_forecast["predicted_value"])
-            mse = mean_squared_error(df_forecast["actual_value"], df_forecast["predicted_value"])
-            rmse = np.sqrt(mse)
-
-            # Aggiorna le metriche
-            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            self.forecast_metrics["mae"].append(mae)
-            self.forecast_metrics["mse"].append(mse)
-            self.forecast_metrics["rmse"].append(rmse)
-            self.forecast_metrics["timestamps"].append(current_time)
-
-            # Limita la dimensione delle liste a 1000 elementi
-            max_items = 1000
-            if len(self.forecast_metrics["timestamps"]) > max_items:
-                self.forecast_metrics["mae"] = self.forecast_metrics["mae"][-max_items:]
-                self.forecast_metrics["mse"] = self.forecast_metrics["mse"][-max_items:]
-                self.forecast_metrics["rmse"] = self.forecast_metrics["rmse"][-max_items:]
-                self.forecast_metrics["timestamps"] = self.forecast_metrics["timestamps"][-max_items:]
-
+            # Convert timestamps
+            df_predictions['_time'] = pd.to_datetime(df_predictions['_time'])
+            
+            # Process each forecast horizon separately
+            results = {}
+            for horizon in ['1min', '10min', '20min', '30min']:
+                print(f"\nProcessing predictions for {horizon} horizon...")
+                horizon_predictions = df_predictions[df_predictions['forecast_horizon'] == horizon].copy()
+                print(f"Found {len(horizon_predictions)} predictions for {horizon} horizon.")
+                if horizon_predictions.empty:
+                    print(f"Nessuna previsione trovata per l'orizzonte {horizon}")
+                    continue
+                
+                # Get actual values for this horizon's predictions
+                actual_values = []
+                for forecast_time in horizon_predictions['_time']:
+                    actual_value = self.get_actual_value(forecast_time)
+                    actual_values.append(actual_value)
+                print(f"Found {len(actual_values)} actual values for {horizon} horizon.")
+                
+                horizon_predictions['actual_value'] = actual_values
+                horizon_predictions.dropna(inplace=True)
+                
+                if horizon_predictions.empty:
+                    continue
+                
+                # Calculate metrics for this horizon
+                mae = mean_absolute_error(horizon_predictions['actual_value'], 
+                                        horizon_predictions['predicted_temperature'])
+                print(f"MAE for {horizon}: {mae:.2f}°C")
+                mse = mean_squared_error(horizon_predictions['actual_value'], 
+                                       horizon_predictions['predicted_temperature'])
+                print(f"MSE for {horizon}: {mse:.2f}°C")
+                rmse = np.sqrt(mse)
+                print(f"RMSE for {horizon}: {rmse:.2f}°C")
+                
+                # Update metrics for this horizon
+                current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                print(self.forecast_metrics)
+                self.forecast_metrics[horizon]["mae"].append(mae)
+                print(self.forecast_metrics[horizon]["mae"])
+                self.forecast_metrics[horizon]["mse"].append(mse)
+                self.forecast_metrics[horizon]["rmse"].append(rmse)
+                self.forecast_metrics[horizon]["timestamps"].append(current_time)
+                
+                # Limit metrics history
+                max_items = 1000
+                if len(self.forecast_metrics[horizon]["timestamps"]) > max_items:
+                    for metric in ["mae", "mse", "rmse", "timestamps"]:
+                        self.forecast_metrics[horizon][metric] = \
+                            self.forecast_metrics[horizon][metric][-max_items:]
+                
+                results[horizon] = {
+                    "mae": mae,
+                    "mse": mse,
+                    "rmse": rmse
+                }
+                
+                print(f"\nMetriche per previsioni a {horizon}:")
+                print(f"Mean Absolute Error (MAE): {mae:.2f}°C")
+                print(f"Mean Squared Error (MSE): {mse:.2f}°C")
+                print(f"Root Mean Squared Error (RMSE): {rmse:.2f}°C")
+            
             self.save_metrics()
-
-            print(f"Mean Absolute Error (MAE): {mae:.2f}°C")
-            print(f"Mean Squared Error (MSE): {mse:.2f}°C")
-            print(f"Root Mean Squared Error (RMSE): {rmse:.2f}°C")
-
-            return {
-                "mae": mae,
-                "mse": mse,
-                "rmse": rmse
-            }
-
+            return results
+            
         except Exception as e:
             print(f"Errore durante la valutazione delle previsioni: {e}")
             return None
@@ -221,26 +274,6 @@ class PerformanceEvaluator:
         else:
             return result["_value"].iloc[0]
 
-    def plot_forecast_accuracy(self):
-        """Genera un grafico dell'accuratezza delle previsioni nel tempo."""
-        if not self.forecast_metrics["timestamps"]:
-            print("Nessun dato disponibile per il grafico.")
-            return
-
-        pio.renderers.default = "browser"
-
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=self.forecast_metrics["timestamps"], y=self.forecast_metrics["mae"], name="MAE"))
-        fig.add_trace(go.Scatter(x=self.forecast_metrics["timestamps"], y=self.forecast_metrics["rmse"], name="RMSE"))
-
-        fig.update_layout(
-            title="Accuratezza delle previsioni nel tempo",
-            xaxis_title="Data/Ora",
-            yaxis_title="Errore (°C)",
-            legend_title="Metriche"
-        )
-
-        fig.show()
 
     def plot_latency(self):
         """Genera un grafico della latenza di rete nel tempo."""
@@ -254,13 +287,15 @@ class PerformanceEvaluator:
         fig.add_trace(go.Scatter(
             x=self.latency_metrics["timestamps"],
             y=self.latency_metrics["latency_ms"],
-            name="Latenza"
+            name="Latenza",
+            mode='lines+markers'
         ))
 
         fig.update_layout(
             title="Latenza di rete nel tempo",
             xaxis_title="Data/Ora",
-            yaxis_title="Latenza (ms)"
+            yaxis_title="Latenza (ms)",
+            showlegend=True
         )
 
         fig.show()
@@ -284,9 +319,11 @@ class PerformanceEvaluator:
         print(f"Data/Ora: {report['timestamp']}")
         print("\nAccuratezza previsioni:")
         if isinstance(report['forecast_accuracy'], dict):
-            print(f"  MAE: {report['forecast_accuracy']['mae']:.2f}°C")
-            print(f"  MSE: {report['forecast_accuracy']['mse']:.2f}°C")
-            print(f"  RMSE: {report['forecast_accuracy']['rmse']:.2f}°C")
+            for horizon, metrics in report['forecast_accuracy'].items():
+                print(f"\nOrizzonte {horizon}:")
+                print(f"  MAE: {metrics['mae']:.2f}°C")
+                print(f"  MSE: {metrics['mse']:.2f}°C")
+                print(f"  RMSE: {metrics['rmse']:.2f}°C")
         else:
             print(f"  {report['forecast_accuracy']}")
 
@@ -307,5 +344,4 @@ if __name__ == "__main__":
     evaluator.generate_performance_report()
     
     # Visualizza i grafici
-    evaluator.plot_forecast_accuracy()
     evaluator.plot_latency()

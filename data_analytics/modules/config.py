@@ -10,5 +10,5 @@ INFLUXDB_CONFIG = {
 ANALYSIS_CONFIG = {
     "threshold": 1.0,  # Differenza di temperatura per considerare uno spreco
     "measure_every_seconds": 30,
-    "forecast_horizon": 60
+    "forecast_horizon": 60 # 30 minuti
 }
