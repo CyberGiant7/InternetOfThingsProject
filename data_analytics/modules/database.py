@@ -1,4 +1,4 @@
-from influxdb_client import InfluxDBClient
+from influxdb_client import InfluxDBClient, Point
 import pandas as pd
 from datetime import timedelta
 from .config import INFLUXDB_CONFIG
@@ -23,7 +23,15 @@ class InfluxDBManager:
         |> keep(columns: ["_time", "indoor", "outdoor"])
         '''
         df = self.query_api.query_data_frame(query)
-        df['_time'] = pd.to_datetime(df['_time']) + timedelta(hours=1)
+        df['_time'] = pd.to_datetime(df['_time']) + timedelta(hours=2)
         df.set_index('_time', inplace=True)
         df = df.asfreq(f'{measure_every_seconds}s')
         return df
+
+    def log_alarm_event(self, indoor_temp, predicted_temp):
+        point = Point("temperature_alarms") \
+            .field("indoor_temperature", indoor_temp) \
+            .field("predicted_temperature", predicted_temp) \
+            .field("temperature_difference", abs(predicted_temp - indoor_temp))
+        
+        self.write_api.write(bucket=INFLUXDB_CONFIG["bucket"], record=point)

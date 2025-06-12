@@ -1,4 +1,5 @@
 from pmdarima import auto_arima
+import pandas as pd
 from datetime import timedelta
 from .config import ANALYSIS_CONFIG
 
@@ -8,10 +9,10 @@ class TemperaturePredictor:
         self.forecast_horizon = ANALYSIS_CONFIG["forecast_horizon"]
         self.measure_every_seconds = ANALYSIS_CONFIG["measure_every_seconds"]
 
-    def predict(self, df):
+    def predict(self, df: pd.DataFrame):
         if df.empty:
             return None
-
+        df.dropna(inplace=True)
         indoor_series = df['indoor']
         outdoor_series = df['outdoor']
 
@@ -33,6 +34,8 @@ class TemperaturePredictor:
                 last_time + timedelta(seconds=self.measure_every_seconds * (i + 1)) 
                 for i in range(self.forecast_horizon)
             ]
+        
+            alert = str(any(abs(pred - indoor_series.iloc[-1]) > self.threshold for pred in forecast))
 
             return {
                 "timestamps": df.index.strftime('%Y-%m-%d %H:%M:%S').tolist(),
@@ -40,7 +43,7 @@ class TemperaturePredictor:
                 "outdoor": outdoor_series.tolist(),
                 "predictions": forecast.tolist(),
                 "prediction_timestamps": [t.strftime('%Y-%m-%d %H:%M:%S') for t in future_timestamps],
-                "alert": str(any(abs(pred - indoor_series.iloc[-1]) > self.threshold for pred in forecast))
+                "alert": alert
             }
         except Exception as e:
             print("Errore durante la previsione:", e)

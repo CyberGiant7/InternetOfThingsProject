@@ -39,6 +39,12 @@ def update_predictions():
         prediction_result = predictor.predict(df)
         if prediction_result:
             latest_temperatures.update(prediction_result)
+            
+            if latest_temperatures["alert"] == "True":
+                indoor_temp = prediction_result["indoor"][-1]  # Current temperature
+                predicted_temp = prediction_result["predictions"][-1]  # Last prediction
+                db_manager.log_alarm_event(indoor_temp, predicted_temp)
+                
         time.sleep(10)
 
 @app.route('/')

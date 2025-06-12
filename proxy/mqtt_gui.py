@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+import time
 import paho.mqtt.client as mqtt
 from fastapi import FastAPI, HTTPException
 from influxdb_client import InfluxDBClient, Point
@@ -11,8 +12,8 @@ import sys
 import os
 
 # MQTT Configuration
-# MQTT_BROKER = "localhost"
-MQTT_BROKER = "192.168.4.157"
+MQTT_BROKER = "localhost"
+# MQTT_BROKER = "192.168.4.157"
 MQTT_PORT = 1883
 CLIENT_ID = "DataProxyClient"
 USER = "arduino"
@@ -68,6 +69,10 @@ class MQTTClientGUI:
         # Start FastAPI server immediately
         self.start_fastapi()
         self.log_message("Data Proxy server started on port 8080")
+        
+        # Start alarm checking thread
+        self.alarm_check_thread = threading.Thread(target=self.check_alarms, daemon=True)
+        self.alarm_check_thread.start()
 
     def toggle_connection(self):
         if not self.connected:
@@ -251,6 +256,28 @@ class MQTTClientGUI:
                 messagebox.showerror("Error", "Failed to send sampling rate")
         except ValueError as e:
             messagebox.showerror("Error", "Please enter a valid positive number")
+            
+    def check_alarms(self):
+        """Check for recent alarms every 10 seconds and control LED"""
+        while True:
+            if self.connected:
+                try:
+                    has_recent_alarms = self.influx_client.query_api().query(f'''
+                        from(bucket: "{INFLUXDB_BUCKET}")
+                        |> range(start: -10s)
+                        |> filter(fn: (r) => r._measurement == "temperature_alarms")
+                    ''')
+                    
+                    # Convert query result to boolean
+                    led_state = "on" if len(list(has_recent_alarms)) > 0 else "off"
+                    
+                    # Send MQTT message to control LED
+                    self.client.publish("hvac/led", led_state)
+                    self.log_message(f"LED control: {led_state} (based on alarms)")
+                except Exception as e:
+                    self.log_message(f"Error checking alarms: {str(e)}")
+            
+            time.sleep(10)
 
 if __name__ == "__main__":
     root = tk.Tk()
