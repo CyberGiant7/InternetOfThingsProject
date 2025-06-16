@@ -1,7 +1,13 @@
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
 # Database configurations
 INFLUXDB_CONFIG = {
     "url": "http://localhost:8086",
-    "token": "uHnhErrBaY76NeLUWGjJfHTmooN0FibnAK1GTifGmqAYxRD6cWqVdsvtaQ_PD9G2i9fX9HasvUpXTin-KPiKoQ==",
+    "token": os.getenv("INFLUXDB_TOKEN"),  # Get from environment variable
     "org": "ProgettoIot",
     "bucket": "ProgettoIot"
 }
@@ -14,11 +20,17 @@ ANALYSIS_CONFIG = {
 }
 
 WEATHER_API_CONFIG = {
-    "api_key": "f685eee7a5d4db075e4da74bc7f3dccc",
+    "api_key": os.getenv("WEATHER_API_KEY"),  # Get from environment variable
     "city": "Bologna",
     "country_code": "IT",
     "units": "metric"  # metric for Celsius
 }
-    
-    
-    
+
+# Validate that required environment variables are set
+if not INFLUXDB_CONFIG["token"]:
+    raise ValueError("INFLUXDB_TOKEN environment variable is not set")
+
+if not WEATHER_API_CONFIG["api_key"]:
+    raise ValueError("WEATHER_API_KEY environment variable is not set")
+
+
