@@ -1,3 +1,5 @@
+import os
+import json
 from flask import Flask, render_template, jsonify
 import threading
 import time
@@ -7,8 +9,10 @@ from modules.predictor import TemperaturePredictor
 from modules.config import ANALYSIS_CONFIG, WEATHER_API_CONFIG
 from modules.performance_evaluation import PerformanceEvaluator
 from modules.weather_api import WeatherAPIClient
+from dotenv import load_dotenv
 
 warnings.filterwarnings("ignore")
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -17,6 +21,19 @@ db_manager = InfluxDBManager()
 predictor = TemperaturePredictor()
 performance_evaluator = PerformanceEvaluator()
 weather_api = WeatherAPIClient(city=WEATHER_API_CONFIG["city"], country_code=WEATHER_API_CONFIG["country_code"], api_key=WEATHER_API_CONFIG["api_key"])
+
+STATUS_FILE = "hvac_status.json"
+
+def get_hvac_status():
+    """Read HVAC status from file."""
+    try:
+        if os.path.exists(STATUS_FILE):
+            with open(STATUS_FILE, 'r') as f:
+                data = json.load(f)
+                return data.get('hvac_status', False)
+    except Exception:
+        pass
+    return False
 
 # Global variables
 latest_temperatures = {
@@ -30,7 +47,8 @@ latest_temperatures = {
         "temp_outdoor": [],
         "timestamp": [],
     },
-    "alert": False
+    "alert": False,
+    "hvac_active": False
 }
 
 # Update the performance_metrics structure
@@ -76,19 +94,23 @@ def update_predictions():
         if api_weather:
             db_manager.store_api_weather_data(api_weather)
             
-
             try:
                 weather_data = db_manager.query_api_weather_data(ANALYSIS_CONFIG["measure_every_seconds"])
-                # print(f"Weather data from API: {weather_data}")
             except Exception as e:
                 print(f"Error querying API weather data: {e}")
+                continue
             
             latest_temperatures["api_data"]["temp_api"].append(weather_data["temp_api"].to_list())
             latest_temperatures["api_data"]["temp_outdoor"].append(weather_data["temp_outdoor"].to_list())
             latest_temperatures["api_data"]["timestamp"].append([t.strftime("%Y-%m-%d %H:%M:%S") for t in weather_data["_time"].to_list()])
-            
+        
+        # Get current HVAC status from file
+        hvac_active = get_hvac_status()
+        latest_temperatures["hvac_active"] = hvac_active
+        
         # Continue with existing prediction logic
-        prediction_result = predictor.predict(df)
+        prediction_result = predictor.predict(df, hvac_active)
+        
         if prediction_result:
             latest_temperatures.update(prediction_result)
             predictions = prediction_result["predictions"]
@@ -108,13 +130,15 @@ def update_predictions():
                     timestamp = prediction_timestamps[idx]
                     db_manager.store_prediction(predicted_temp, timestamp, horizon)
                  
-            if latest_temperatures["alert"] == "True":
+            # Only log alarm if HVAC is active and alert is True
+            if latest_temperatures["alert"] == "True" and latest_temperatures["hvac_active"]:
                 indoor_temp = prediction_result["indoor"][-1]
                 predicted_temp = prediction_result["predictions"][-1]
                 db_manager.log_alarm_event(indoor_temp, predicted_temp)
                 
         time.sleep(10)
 
+# Routes remain the same
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -143,10 +167,9 @@ def get_performance():
             "timestamps": performance_evaluator.latency_metrics["timestamps"],
             "average": performance_evaluator.get_average_latency()
         }
-        # return render_template('performance.html')
         return jsonify(performance_metrics)
     except Exception as e:
-        print(f"Errore durante il recupero delle metriche di performance: {e}")
+        print(f"Error retrieving performance metrics: {e}")
         return jsonify({"error": str(e)})
     
 @app.route('/performance')
@@ -154,5 +177,9 @@ def performance():
     return render_template('performance.html')
 
 if __name__ == '__main__':
-    threading.Thread(target=update_predictions, daemon=True).start()
+    # Start the prediction loop
+    prediction_thread = threading.Thread(target=update_predictions, daemon=True)
+    prediction_thread.start()
+    
+    # Run the Flask app
     app.run(host="0.0.0.0", port=5000, debug=True)

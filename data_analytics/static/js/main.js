@@ -1,4 +1,3 @@
-// Consolidate fetchData and fetchAndUpdateData into a single function
 async function fetchData() {
     try {
         const response = await fetch('/data');
