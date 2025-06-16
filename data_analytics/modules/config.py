@@ -12,3 +12,13 @@ ANALYSIS_CONFIG = {
     "measure_every_seconds": 30,
     "forecast_horizon": 60 # 30 minuti
 }
+
+WEATHER_API_CONFIG = {
+    "api_key": "f685eee7a5d4db075e4da74bc7f3dccc",
+    "city": "Bologna",
+    "country_code": "IT",
+    "units": "metric"  # metric for Celsius
+}
+    
+    
+    

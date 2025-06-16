@@ -4,8 +4,9 @@ import time
 import warnings
 from modules.database import InfluxDBManager
 from modules.predictor import TemperaturePredictor
-from modules.config import ANALYSIS_CONFIG
+from modules.config import ANALYSIS_CONFIG, WEATHER_API_CONFIG
 from modules.performance_evaluation import PerformanceEvaluator
+from modules.weather_api import WeatherAPIClient
 
 warnings.filterwarnings("ignore")
 
@@ -15,6 +16,7 @@ app = Flask(__name__)
 db_manager = InfluxDBManager()
 predictor = TemperaturePredictor()
 performance_evaluator = PerformanceEvaluator()
+weather_api = WeatherAPIClient(city=WEATHER_API_CONFIG["city"], country_code=WEATHER_API_CONFIG["country_code"], api_key=WEATHER_API_CONFIG["api_key"])
 
 # Global variables
 latest_temperatures = {
@@ -23,6 +25,11 @@ latest_temperatures = {
     "outdoor": [],
     "predictions": [],
     "prediction_timestamps": [],
+    "api_data": {
+        "temp_api": [],
+        "temp_outdoor": [],
+        "timestamp": [],
+    },
     "alert": False
 }
 
@@ -61,7 +68,26 @@ def update_predictions():
     """Continuous prediction update loop."""
     global latest_temperatures
     while True:
+        # Get sensor data
         df = db_manager.query_temperature_data(ANALYSIS_CONFIG["measure_every_seconds"])
+        
+        # Get weather API data
+        api_weather = weather_api.get_current_weather()
+        if api_weather:
+            db_manager.store_api_weather_data(api_weather)
+            
+
+            try:
+                weather_data = db_manager.query_api_weather_data(ANALYSIS_CONFIG["measure_every_seconds"])
+                # print(f"Weather data from API: {weather_data}")
+            except Exception as e:
+                print(f"Error querying API weather data: {e}")
+            
+            latest_temperatures["api_data"]["temp_api"].append(weather_data["temp_api"].to_list())
+            latest_temperatures["api_data"]["temp_outdoor"].append(weather_data["temp_outdoor"].to_list())
+            latest_temperatures["api_data"]["timestamp"].append([t.strftime("%Y-%m-%d %H:%M:%S") for t in weather_data["_time"].to_list()])
+            
+        # Continue with existing prediction logic
         prediction_result = predictor.predict(df)
         if prediction_result:
             latest_temperatures.update(prediction_result)

@@ -24,7 +24,7 @@ def generate_sine_wave(time_step, amplitude, period, phase, base_value):
 
 def generate_sensor_data():
     """Generate realistic sensor data with some variations."""
-    current_time = datetime.now().isoformat()
+    current_time = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
     time_step = time.time()
 
     # Generate indoor temperature (20-25°C with smooth variations)
