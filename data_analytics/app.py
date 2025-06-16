@@ -97,7 +97,7 @@ def index():
 def get_data():
     return jsonify(latest_temperatures)
 
-@app.route('/performance')
+@app.route('/performance-data')
 def get_performance():
     try:
         forecast_metrics = performance_evaluator.evaluate_forecast_accuracy()
@@ -117,11 +117,15 @@ def get_performance():
             "timestamps": performance_evaluator.latency_metrics["timestamps"],
             "average": performance_evaluator.get_average_latency()
         }
-        
+        # return render_template('performance.html')
         return jsonify(performance_metrics)
     except Exception as e:
         print(f"Errore durante il recupero delle metriche di performance: {e}")
         return jsonify({"error": str(e)})
+    
+@app.route('/performance')
+def performance():
+    return render_template('performance.html')
 
 if __name__ == '__main__':
     threading.Thread(target=update_predictions, daemon=True).start()

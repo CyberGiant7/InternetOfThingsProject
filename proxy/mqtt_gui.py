@@ -11,9 +11,8 @@ import threading
 import sys
 import os
 
-# MQTT Configuration
 MQTT_BROKER = "localhost"
-# MQTT_BROKER = "192.168.4.157"
+# MQTT_BROKER = "192.168.137.155"
 MQTT_PORT = 1883
 CLIENT_ID = "DataProxyClient"
 USER = "arduino"
@@ -24,7 +23,6 @@ INFLUXDB_URL = "http://localhost:8086"
 INFLUXDB_TOKEN = "uHnhErrBaY76NeLUWGjJfHTmooN0FibnAK1GTifGmqAYxRD6cWqVdsvtaQ_PD9G2i9fX9HasvUpXTin-KPiKoQ=="
 INFLUXDB_ORG = "ProgettoIot"
 INFLUXDB_BUCKET = "ProgettoIot"
-
 
 # Predefined commands
 COMMANDS = {
@@ -177,11 +175,23 @@ class MQTTClientGUI:
     def start_fastapi(self):
         @self.app.post("/sensor-data")
         async def receive_sensor_data(data: SensorData):
+            print(f"Received data: {data}")
             self.log_message(f"Received sensor data: {data}")
             try:
                 if data.timestamp:
-                    device_timestamp = datetime.fromisoformat(data.timestamp)
-                    self.log_message(f"Timestamp: {device_timestamp}")
+                    device_timestamp = datetime.strptime(data.timestamp, "%Y-%m-%dT%H:%M:%SZ")
+                
+                # Compute latency
+                latency = datetime.now() - device_timestamp
+                print(f"Latency: {latency.microseconds / 1000} ms")
+
+                # Write latency to InfluxDB
+                self.write_api.write(
+                    bucket=INFLUXDB_BUCKET,
+                    record=[
+                        Point("latency").field("value", latency.microseconds / 1000)
+                    ]
+                )
                 
                 # Write to InfluxDB
                 for location, temp, hum in [("indoor", data.tempIndoor, data.humIndoor),
@@ -202,7 +212,7 @@ class MQTTClientGUI:
         # Run FastAPI in a separate thread
         def run_fastapi():
             uvicorn.run(self.app, host="0.0.0.0", port=8080)
-        
+            
         threading.Thread(target=run_fastapi, daemon=True).start()
 
     def log_message(self, message):

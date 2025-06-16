@@ -321,3 +321,4 @@ pyrightconfig.json
 */.idea/
 
 ./proxy/performance_metrics.json
+performance_metrics.json

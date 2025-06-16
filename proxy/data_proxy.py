@@ -43,7 +43,8 @@ async def receive_sensor_data(data: SensorData):
         # Registra la latenza se è presente un timestamp
         if data.timestamp:
             try:
-                device_timestamp = datetime.fromisoformat(data.timestamp)
+                device_timestamp = datetime.strptime(data.timestamp, "%Y-%m-%dT%H:%M:%SZ")
+                print(f"Timestamp del dispositivo: {device_timestamp}")
                 latency = performance_evaluator.record_data_latency(device_timestamp)
                 print(f"Latenza misurata: {latency:.2f} ms")
             except (ValueError, TypeError) as e:

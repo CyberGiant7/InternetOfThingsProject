@@ -79,6 +79,15 @@
         <h2>Accuratezza delle Previsioni</h2>
         <div class="metrics-container">
             <div class="metric-card">
+                <div class="metric-label">Orizzonte Temporale</div>
+                <select id="forecast-horizon" onchange="updateMetricsDisplay()">
+                    <option value="1min">1 Minuto</option>
+                    <option value="10min">10 Minuti</option>
+                    <option value="20min">20 Minuti</option>
+                    <option value="30min">30 Minuti</option>
+                </select>
+            </div>
+            <div class="metric-card">
                 <div class="metric-label">MAE (Errore Medio Assoluto)</div>
                 <div class="metric-value" id="mae-value">--</div>
                 <div class="metric-label">°C</div>
@@ -116,33 +125,48 @@
     <script>
         let forecastAccuracyChart;
         let latencyChart;
+        let currentData = {};
+
+        function updateMetricsDisplay() {
+            const horizon = document.getElementById("forecast-horizon").value;
+            const metrics = currentData.forecast_accuracy?.[horizon];
+            
+            if (metrics && metrics.mae.length > 0) {
+                const lastIndex = metrics.mae.length - 1;
+                document.getElementById("mae-value").textContent = metrics.mae[lastIndex].toFixed(2);
+                document.getElementById("mse-value").textContent = metrics.mse[lastIndex].toFixed(2);
+                document.getElementById("rmse-value").textContent = metrics.rmse[lastIndex].toFixed(2);
+            } else {
+                document.getElementById("mae-value").textContent = "--";
+                document.getElementById("mse-value").textContent = "--";
+                document.getElementById("rmse-value").textContent = "--";
+            }
+            
+            updateForecastAccuracyChart(horizon);
+        }
 
         async function fetchPerformanceData() {
             try {
-                const response = await fetch('/performance');
-                const data = await response.json();
+                const response = await fetch('/performance-data');
+                currentData = await response.json();
                 
-                // Aggiorna i valori delle metriche
-                if (data.forecast_accuracy && data.forecast_accuracy.mae.length > 0) {
-                    const lastIndex = data.forecast_accuracy.mae.length - 1;
-                    document.getElementById("mae-value").textContent = data.forecast_accuracy.mae[lastIndex].toFixed(2);
-                    document.getElementById("mse-value").textContent = data.forecast_accuracy.mse[lastIndex].toFixed(2);
-                    document.getElementById("rmse-value").textContent = data.forecast_accuracy.rmse[lastIndex].toFixed(2);
+                // Update metrics for current selected horizon
+                updateMetricsDisplay();
+                
+                // Update latency chart
+                console.log(currentData)
+                if (currentData.latency) {
+                    document.getElementById("avg-latency-value").textContent = 
+                        (currentData.latency.average || "--").toFixed(2);
+                    updateLatencyChart(currentData.latency_metrics);
                 }
-                
-                if (data.latency && data.latency.average !== null) {
-                    document.getElementById("avg-latency-value").textContent = data.latency.average.toFixed(2);
-                }
-                
-                // Aggiorna i grafici
-                updateForecastAccuracyChart(data.forecast_accuracy);
-                updateLatencyChart(data.latency);
             } catch (error) {
                 console.error("Errore durante il recupero dei dati di performance:", error);
             }
         }
 
-        function updateForecastAccuracyChart(data) {
+        function updateForecastAccuracyChart(horizon) {
+            const data = currentData.forecast_accuracy?.[horizon];
             if (!data || !data.timestamps || data.timestamps.length === 0) {
                 return;
             }
@@ -193,7 +217,7 @@
                         plugins: {
                             title: {
                                 display: true,
-                                text: "Accuratezza delle Previsioni nel Tempo"
+                                text: `Accuratezza delle Previsioni nel Tempo (${horizon})`
                             }
                         }
                     }
@@ -202,6 +226,8 @@
                 forecastAccuracyChart.data.labels = data.timestamps;
                 forecastAccuracyChart.data.datasets[0].data = data.mae;
                 forecastAccuracyChart.data.datasets[1].data = data.rmse;
+                forecastAccuracyChart.options.plugins.title.text = 
+                    `Accuratezza delle Previsioni nel Tempo (${horizon})`;
                 forecastAccuracyChart.update();
             }
         }
@@ -221,7 +247,7 @@
                         datasets: [
                             {
                                 label: "Latenza",
-                                data: data.values,
+                                data: data.latency_ms,
                                 borderColor: "green",
                                 fill: false
                             }
@@ -258,7 +284,7 @@
                 });
             } else {
                 latencyChart.data.labels = data.timestamps;
-                latencyChart.data.datasets[0].data = data.values;
+                latencyChart.data.datasets[0].data = data.latency_ms;
                 latencyChart.update();
             }
         }

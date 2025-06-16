@@ -1,6 +1,7 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <HTTPClient.h>
+#include <time.h>
 #include "DHT.h"
 
 // Definizioni per i sensori
@@ -19,10 +20,10 @@ const char* ssid = "Wifi";
 const char* password = "passwordo";
 
 // Configurazione server HTTP
-const char* server_url = "http://192.168.137.167:8080/sensor-data";
+const char* server_url = "http://192.168.137.52:8080/sensor-data";
 
 // Configurazione MQTT
-const char* mqtt_server = "192.168.137.167"; // Sostituisci con l'IP del broker MQTT
+const char* mqtt_server = "192.168.137.52"; // Sostituisci con l'IP del broker MQTT
 const char* mqtt_username = "arduino";  // Inserisci il tuo username MQTT
 const char* mqtt_password = "progettoiot";  // Inserisci la tua password MQTT
 WiFiClient espClient;
@@ -44,6 +45,19 @@ void setup() {
     Serial.println("Connessione WiFi...");
   }
   Serial.println("WiFi connesso");
+
+  // Imposta l'orario
+  configTime(3600, 3600, "pool.ntp.org", "time.nist.gov"); // Fuso orario italiano (UTC+1, DST+1)
+
+  // Attendi sincronizzazione
+  Serial.println("Attendo sincronizzazione oraria NTP...");
+  struct tm timeinfo;
+  while (!getLocalTime(&timeinfo)) {
+    Serial.println("Connessione NTP in corso...");
+    delay(1000);
+  }
+  Serial.println("Ora sincronizzata:");
+  Serial.println(&timeinfo, "%Y-%m-%d %H:%M:%S");
 
   // Inizializza MQTT
   client.setServer(mqtt_server, 1883);
@@ -86,7 +100,23 @@ void sendSensorData(float tempIndoor, float humIndoor, float tempOutdoor, float 
   http.begin(server_url);
   http.addHeader("Content-Type", "application/json");
 
-  String payload = "{\"tempIndoor\": " + String(tempIndoor) + ", \"humIndoor\": " + String(humIndoor) + ", \"tempOutdoor\": " + String(tempOutdoor) + ", \"humOutdoor\": " + String(humOutdoor)+ "}";
+  struct tm timeinfo;
+  char timestamp[25]; // formato: "2025-06-13T14:23:00Z"
+
+  if (getLocalTime(&timeinfo)) {
+    strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%SZ", &timeinfo);
+  } else {
+    strcpy(timestamp, "unknown");
+  }
+  
+  String payload = "{";
+  payload += "\"timestamp\": \"" + String(timestamp) + "\",";
+  payload += "\"tempIndoor\": " + String(tempIndoor) + ",";
+  payload += "\"humIndoor\": " + String(humIndoor) + ",";
+  payload += "\"tempOutdoor\": " + String(tempOutdoor) + ",";
+  payload += "\"humOutdoor\": " + String(humOutdoor);
+  payload += "}";
+
   int httpResponseCode = http.POST(payload);
   http.end();
 
