@@ -320,5 +320,4 @@ pyrightconfig.json
 */__pycache__/forecast.cpython-312.pyc
 */.idea/
 
-./proxy/performance_metrics.json
-performance_metrics.json
+*/performance_metrics.json
