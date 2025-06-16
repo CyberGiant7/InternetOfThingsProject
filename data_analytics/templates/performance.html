@@ -1,299 +1,83 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Valutazione Prestazioni Sistema</title>
+    <title>System Performance Evaluation</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        h1, h2 {
-            color: #333;
-            text-align: center;
-        }
-        .metrics-container {
-            display: flex;
-            justify-content: space-around;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        .metric-card {
-            background-color: #f9f9f9;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 10px;
-            min-width: 200px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-        .metric-value {
-            font-size: 24px;
-            font-weight: bold;
-            color: #2c3e50;
-            margin: 10px 0;
-        }
-        .metric-label {
-            font-size: 14px;
-            color: #7f8c8d;
-        }
-        .chart-container {
-            margin: 20px 0;
-            height: 300px;
-        }
-        .nav-links {
-            text-align: center;
-            margin: 20px 0;
-        }
-        .nav-links a {
-            margin: 0 10px;
-            color: #3498db;
-            text-decoration: none;
-        }
-        .nav-links a:hover {
-            text-decoration: underline;
-        }
-    </style>
+    <script src="{{ url_for('static', filename='js/charts.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/performance.js') }}" defer></script>
 </head>
 <body>
     <div class="container">
-        <h1>Valutazione Prestazioni Sistema</h1>
-        
-        <div class="nav-links">
-            <a href="/">Dashboard Temperature</a> | 
-            <a href="/performance">Metriche di Performance</a>
-        </div>
-        
-        <h2>Accuratezza delle Previsioni</h2>
-        <div class="metrics-container">
-            <div class="metric-card">
-                <div class="metric-label">Orizzonte Temporale</div>
-                <select id="forecast-horizon" onchange="updateMetricsDisplay()">
-                    <option value="1min">1 Minuto</option>
-                    <option value="10min">10 Minuti</option>
-                    <option value="20min">20 Minuti</option>
-                    <option value="30min">30 Minuti</option>
-                </select>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">MAE (Errore Medio Assoluto)</div>
-                <div class="metric-value" id="mae-value">--</div>
-                <div class="metric-label">°C</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">MSE (Errore Quadratico Medio)</div>
-                <div class="metric-value" id="mse-value">--</div>
-                <div class="metric-label">°C</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">RMSE (Radice dell'Errore Quadratico Medio)</div>
-                <div class="metric-value" id="rmse-value">--</div>
-                <div class="metric-label">°C</div>
+        <div class="header">
+            <h1>System Performance Evaluation</h1>
+            
+            <div class="nav-links">
+                <a href="/">Temperature Dashboard</a> | 
+                <a href="/performance">Performance Metrics</a>
             </div>
         </div>
         
-        <div class="chart-container">
-            <canvas id="forecastAccuracyChart"></canvas>
-        </div>
-        
-        <h2>Latenza di Acquisizione Dati</h2>
-        <div class="metrics-container">
-            <div class="metric-card">
-                <div class="metric-label">Latenza Media</div>
-                <div class="metric-value" id="avg-latency-value">--</div>
-                <div class="metric-label">ms</div>
+        <!-- Forecast Accuracy Section -->
+        <div class="card">
+            <div class="card-header">
+                Forecast Accuracy
+            </div>
+            <div class="card-body">
+                <div class="metrics-container">
+                    <div class="metric-card">
+                        <div class="metric-label">Time Horizon</div>
+                        <select id="forecast-horizon" onchange="updateMetricsDisplay()">
+                            <option value="1min">1 Minute</option>
+                            <option value="10min">10 Minutes</option>
+                            <option value="20min">20 Minutes</option>
+                            <option value="30min">30 Minutes</option>
+                        </select>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">MAE (Mean Absolute Error)</div>
+                        <div class="metric-value" id="mae-value">--</div>
+                        <div class="metric-label">°C</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">MSE (Mean Squared Error)</div>
+                        <div class="metric-value" id="mse-value">--</div>
+                        <div class="metric-label">°C</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">RMSE (Root Mean Squared Error)</div>
+                        <div class="metric-value" id="rmse-value">--</div>
+                        <div class="metric-label">°C</div>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="forecastAccuracyChart"></canvas>
+                </div>
             </div>
         </div>
         
-        <div class="chart-container">
-            <canvas id="latencyChart"></canvas>
+        <!-- Latency Section -->
+        <div class="card">
+            <div class="card-header">
+                Data Acquisition Latency
+            </div>
+            <div class="card-body">
+                <div class="metrics-container">
+                    <div class="metric-card">
+                        <div class="metric-label">Average Latency</div>
+                        <div class="metric-value" id="avg-latency-value">--</div>
+                        <div class="metric-label">ms</div>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="latencyChart"></canvas>
+                </div>
+            </div>
         </div>
     </div>
-
-    <script>
-        let forecastAccuracyChart;
-        let latencyChart;
-        let currentData = {};
-
-        function updateMetricsDisplay() {
-            const horizon = document.getElementById("forecast-horizon").value;
-            const metrics = currentData.forecast_accuracy?.[horizon];
-            
-            if (metrics && metrics.mae.length > 0) {
-                const lastIndex = metrics.mae.length - 1;
-                document.getElementById("mae-value").textContent = metrics.mae[lastIndex].toFixed(2);
-                document.getElementById("mse-value").textContent = metrics.mse[lastIndex].toFixed(2);
-                document.getElementById("rmse-value").textContent = metrics.rmse[lastIndex].toFixed(2);
-            } else {
-                document.getElementById("mae-value").textContent = "--";
-                document.getElementById("mse-value").textContent = "--";
-                document.getElementById("rmse-value").textContent = "--";
-            }
-            
-            updateForecastAccuracyChart(horizon);
-        }
-
-        async function fetchPerformanceData() {
-            try {
-                const response = await fetch('/performance-data');
-                currentData = await response.json();
-                
-                // Update metrics for current selected horizon
-                updateMetricsDisplay();
-                
-                // Update latency chart
-                console.log(currentData)
-                if (currentData.latency) {
-                    document.getElementById("avg-latency-value").textContent = 
-                        (currentData.latency.average || "--").toFixed(2);
-                    updateLatencyChart(currentData.latency_metrics);
-                }
-            } catch (error) {
-                console.error("Errore durante il recupero dei dati di performance:", error);
-            }
-        }
-
-        function updateForecastAccuracyChart(horizon) {
-            const data = currentData.forecast_accuracy?.[horizon];
-            if (!data || !data.timestamps || data.timestamps.length === 0) {
-                return;
-            }
-            
-            const ctx = document.getElementById("forecastAccuracyChart").getContext("2d");
-            
-            if (!forecastAccuracyChart) {
-                forecastAccuracyChart = new Chart(ctx, {
-                    type: "line",
-                    data: {
-                        labels: data.timestamps,
-                        datasets: [
-                            {
-                                label: "MAE",
-                                data: data.mae,
-                                borderColor: "blue",
-                                fill: false
-                            },
-                            {
-                                label: "RMSE",
-                                data: data.rmse,
-                                borderColor: "red",
-                                fill: false
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            x: {
-                                ticks: {
-                                    maxTicksLimit: 10
-                                },
-                                title: {
-                                    display: true,
-                                    text: "Data/Ora"
-                                }
-                            },
-                            y: {
-                                beginAtZero: true,
-                                title: {
-                                    display: true,
-                                    text: "Errore (°C)"
-                                }
-                            }
-                        },
-                        plugins: {
-                            title: {
-                                display: true,
-                                text: `Accuratezza delle Previsioni nel Tempo (${horizon})`
-                            }
-                        }
-                    }
-                });
-            } else {
-                forecastAccuracyChart.data.labels = data.timestamps;
-                forecastAccuracyChart.data.datasets[0].data = data.mae;
-                forecastAccuracyChart.data.datasets[1].data = data.rmse;
-                forecastAccuracyChart.options.plugins.title.text = 
-                    `Accuratezza delle Previsioni nel Tempo (${horizon})`;
-                forecastAccuracyChart.update();
-            }
-        }
-
-        function updateLatencyChart(data) {
-            if (!data || !data.timestamps || data.timestamps.length === 0) {
-                return;
-            }
-            
-            const ctx = document.getElementById("latencyChart").getContext("2d");
-            
-            if (!latencyChart) {
-                latencyChart = new Chart(ctx, {
-                    type: "line",
-                    data: {
-                        labels: data.timestamps,
-                        datasets: [
-                            {
-                                label: "Latenza",
-                                data: data.latency_ms,
-                                borderColor: "green",
-                                fill: false
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            x: {
-                                ticks: {
-                                    maxTicksLimit: 10
-                                },
-                                title: {
-                                    display: true,
-                                    text: "Data/Ora"
-                                }
-                            },
-                            y: {
-                                beginAtZero: true,
-                                title: {
-                                    display: true,
-                                    text: "Latenza (ms)"
-                                }
-                            }
-                        },
-                        plugins: {
-                            title: {
-                                display: true,
-                                text: "Latenza di Rete nel Tempo"
-                            }
-                        }
-                    }
-                });
-            } else {
-                latencyChart.data.labels = data.timestamps;
-                latencyChart.data.datasets[0].data = data.latency_ms;
-                latencyChart.update();
-            }
-        }
-
-        // Aggiorna i dati ogni 30 secondi
-        setInterval(fetchPerformanceData, 30000);
-        
-        // Carica i dati iniziali
-        fetchPerformanceData();
-    </script>
 </body>
 </html>

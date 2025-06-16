@@ -110,3 +110,60 @@ body {
     font-size: 1.2em;
     margin-right: 0.5rem;
 }
+
+/* Performance page specific styles */
+.metrics-container {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.metric-card {
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 10px;
+    min-width: 200px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    text-align: center;
+    flex: 1;
+}
+
+.metric-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: #2c3e50;
+    margin: 10px 0;
+}
+
+.metric-label {
+    font-size: 14px;
+    color: #7f8c8d;
+}
+
+.chart-container {
+    margin: 20px 0;
+    height: 300px;
+    position: relative;
+}
+
+.chart-container canvas {
+    max-height: 300px;
+}
+
+/* Select dropdown styling */
+#forecast-horizon {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: white;
+    cursor: pointer;
+}
+
+#forecast-horizon:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+}
