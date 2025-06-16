@@ -78,16 +78,7 @@ class InfluxDBManager:
             
         Returns:
             DataFrame: Recent weather API data
-        """
-        query = f'''
-        from(bucket: "{self.bucket}")
-            |> range(start: -3h)
-            |> filter(fn: (r) => (r["_measurement"] == "weather_api_data" and r["_field"] == "temperature") or (r["_measurement"] == "temperature" and  r["_field"] == "value" and r["location"] != "indoor"))
-            |> aggregateWindow(every: {measure_every_seconds}s, fn: mean, createEmpty: false)
-            |> yield(name: "mean")
-            |> pivot(rowKey:["_time"], columnKey: ["_measurement"], valueColumn: "_value")
-        '''
-        
+        """        
         query = f'''
             outdoor = 
             from(bucket: "{self.bucket}")

@@ -154,32 +154,10 @@ function updateApiComparisonChart(data) {
     let outdoorTemps = [];
     let timestamps = [];
     
-    // Handle nested arrays in the api_data structure
-    if (Array.isArray(apiData.temp_api[0])) {
-        // Flatten nested arrays if needed
-        apiData.temp_api.forEach(arr => {
-            if (arr && arr.length > 0) {
-                apiTemps = apiTemps.concat(arr);
-            }
-        });
-        
-        apiData.temp_outdoor.forEach(arr => {
-            if (arr && arr.length > 0) {
-                outdoorTemps = outdoorTemps.concat(arr);
-            }
-        });
-        
-        apiData.timestamp.forEach(arr => {
-            if (arr && arr.length > 0) {
-                timestamps = timestamps.concat(arr);
-            }
-        });
-    } else {
-        // Data is already flat
-        apiTemps = apiData.temp_api;
-        outdoorTemps = apiData.temp_outdoor;
-        timestamps = apiData.timestamp;
-    }
+    apiTemps = apiData.temp_api;
+    outdoorTemps = apiData.temp_outdoor;
+    timestamps = apiData.timestamp;
+    
     
     // Limit to last 30 points for readability
     const maxPoints = 30;

@@ -10,6 +10,7 @@ from modules.config import ANALYSIS_CONFIG, WEATHER_API_CONFIG
 from modules.performance_evaluation import PerformanceEvaluator
 from modules.weather_api import WeatherAPIClient
 from dotenv import load_dotenv
+import datetime
 
 warnings.filterwarnings("ignore")
 load_dotenv()
@@ -96,13 +97,15 @@ def update_predictions():
             
             try:
                 weather_data = db_manager.query_api_weather_data(ANALYSIS_CONFIG["measure_every_seconds"])
+                print("Weather data retrieved successfully.")
+                print(weather_data.tail())
             except Exception as e:
                 print(f"Error querying API weather data: {e}")
                 continue
             
-            latest_temperatures["api_data"]["temp_api"].append(weather_data["temp_api"].to_list())
-            latest_temperatures["api_data"]["temp_outdoor"].append(weather_data["temp_outdoor"].to_list())
-            latest_temperatures["api_data"]["timestamp"].append([t.strftime("%Y-%m-%d %H:%M:%S") for t in weather_data["_time"].to_list()])
+            latest_temperatures["api_data"]["temp_api"] = weather_data["temp_api"].to_list()
+            latest_temperatures["api_data"]["temp_outdoor"] = weather_data["temp_outdoor"].to_list()
+            latest_temperatures["api_data"]["timestamp"] = [(t + datetime.timedelta(hours=2)).strftime("%Y-%m-%d %H:%M:%S") for t in weather_data["_time"].to_list()]
         
         # Get current HVAC status from file
         hvac_active = get_hvac_status()
