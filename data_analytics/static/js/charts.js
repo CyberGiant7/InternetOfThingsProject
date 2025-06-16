@@ -37,12 +37,27 @@ function initTemperatureChart(data) {
             maintainAspectRatio: true,
             scales: {
                 x: {
-                    ticks: {
-                        maxTicksLimit: 10
+                    display: true,
+                    title: {
+                        display: true,
+                        text: 'Time'
                     }
                 },
                 y: {
-                    beginAtZero: false
+                    display: true,
+                    title: {
+                        display: true,
+                        text: 'Temperature (°C)'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top'
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
                 }
             }
         }

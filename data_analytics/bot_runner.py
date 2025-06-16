@@ -3,6 +3,7 @@ import json
 import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
+from telegram.error import BadRequest
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -73,34 +74,51 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await query.answer("❌ Not authorized!")
         return
     
-    await query.answer()
+    current_status = read_hvac_status()
     
     if query.data == "hvac_on":
+        if current_status:
+            await query.answer("✅ HVAC is already ON!")
+            return
         write_hvac_status(True)
         message = "✅ <b>HVAC System turned ON</b>\n🔥 Energy waste detection enabled"
+        await query.answer("🔥 HVAC turned ON!")
         
     elif query.data == "hvac_off":
+        if not current_status:
+            await query.answer("✅ HVAC is already OFF!")
+            return
         write_hvac_status(False)
         message = "✅ <b>HVAC System turned OFF</b>\n❄️ Energy waste detection disabled"
+        await query.answer("❄️ HVAC turned OFF!")
         
     elif query.data == "status":
-        status = "ON" if read_hvac_status() else "OFF"
-        emoji = "🔥" if read_hvac_status() else "❄️"
+        status = "ON" if current_status else "OFF"
+        emoji = "🔥" if current_status else "❄️"
         message = f"📊 <b>HVAC Status</b>\n{emoji} System is currently <b>{status}</b>"
+        await query.answer(f"{emoji} HVAC is {status}")
         
     elif query.data == "refresh":
-        status = "ON" if read_hvac_status() else "OFF"
+        status = "ON" if current_status else "OFF"
         message = (
             f'🏠 <b>HVAC Control Bot</b>\n\n'
             f'Current Status: <b>{status}</b>\n\n'
             f'Use the buttons below to control your HVAC system:'
         )
+        await query.answer("🔄 Refreshed!")
     
-    await query.edit_message_text(
-        message,
-        parse_mode='HTML',
-        reply_markup=get_main_keyboard()
-    )
+    try:
+        await query.edit_message_text(
+            message,
+            parse_mode='HTML',
+            reply_markup=get_main_keyboard()
+        )
+    except BadRequest as e:
+        if "Message is not modified" in str(e):
+            # Message content is the same, just acknowledge the button press
+            pass
+        else:
+            print(f"Error updating message: {e}")
 
 # Legacy command handlers (still work with text commands)
 async def hvac_on(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

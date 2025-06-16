@@ -92,3 +92,21 @@ body {
     background-color: #e8f5e9;
     border-left: 4px solid green;
 }
+
+.stat-card.hvac {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.stat-card.hvac.active {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ffa500 100%);
+}
+
+.stat-card.hvac.inactive {
+    background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+}
+
+#hvac-indicator {
+    font-size: 1.2em;
+    margin-right: 0.5rem;
+}

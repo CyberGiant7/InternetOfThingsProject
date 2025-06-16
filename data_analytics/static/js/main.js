@@ -16,6 +16,21 @@ async function fetchData() {
             document.getElementById("alert").style.display = "none";
         }
         
+        const hvacStatus = data.hvac_active;            
+        const hvacStatusCard = document.getElementById('hvac-status');
+        const hvacIndicator = document.getElementById('hvac-indicator');
+        const hvacText = document.getElementById('hvac-text');
+        
+        if (hvacStatus) {
+            hvacStatusCard.className = 'stat-card hvac active';
+            hvacIndicator.textContent = '🔥';
+            hvacText.textContent = 'ON';
+        } else {
+            hvacStatusCard.className = 'stat-card hvac inactive';
+            hvacIndicator.textContent = '❄️';
+            hvacText.textContent = 'OFF';
+        }
+
         // Update all charts
         updateChart(data);
         updateApiComparisonChart(data);
@@ -28,7 +43,6 @@ async function fetchData() {
 function initDashboard() {
     // Start fetching data when the page loads
     fetchData();
-    
     // Set up interval to fetch data every 10 seconds
     setInterval(fetchData, 10000);
 }
