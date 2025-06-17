@@ -321,3 +321,4 @@ pyrightconfig.json
 */.idea/
 
 */performance_metrics.json
+*/hvac_status.json

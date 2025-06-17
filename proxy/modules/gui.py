@@ -1,71 +1,32 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-import time
-import paho.mqtt.client as mqtt
-from fastapi import FastAPI, HTTPException
-from influxdb_client import InfluxDBClient, Point
-from pydantic import BaseModel
-import uvicorn
-from datetime import datetime
 import threading
-import sys
-import os
+import time
+from datetime import datetime
+from modules.mqtt_client import MQTTManager
+from modules.api_server import APIServer
+from modules.database import InfluxDBManager
+from modules.config import COMMANDS
 
-MQTT_BROKER = "localhost"
-# MQTT_BROKER = "192.168.137.155"
-MQTT_PORT = 1883
-CLIENT_ID = "DataProxyClient"
-USER = "arduino"
-PASSWORD = "progettoiot"
-
-# InfluxDB Configuration
-INFLUXDB_URL = "http://localhost:8086"
-INFLUXDB_TOKEN = "uHnhErrBaY76NeLUWGjJfHTmooN0FibnAK1GTifGmqAYxRD6cWqVdsvtaQ_PD9G2i9fX9HasvUpXTin-KPiKoQ=="
-INFLUXDB_ORG = "ProgettoIot"
-INFLUXDB_BUCKET = "ProgettoIot"
-
-# Predefined commands
-COMMANDS = {
-    "Turn On HVAC": {"topic": "hvac/control", "message": "start"},
-    "Turn Off HVAC": {"topic": "hvac/control", "message": "stop"},
-    "Turn On LED": {"topic": "hvac/led", "message": "on"},
-    "Turn Off LED": {"topic": "hvac/led", "message": "off"},
-}
-
-class SensorData(BaseModel):
-    tempIndoor: float
-    humIndoor: float
-    tempOutdoor: float
-    humOutdoor: float
-    timestamp: str = None
-
-
-# Modify MQTTClientGUI class
 class MQTTClientGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("MQTT Client & Data Proxy")
         self.root.geometry("800x600")
         
-        # Initialize FastAPI and InfluxDB
-        self.app = FastAPI()
-        self.influx_client = InfluxDBClient(url=INFLUXDB_URL, token=INFLUXDB_TOKEN, org=INFLUXDB_ORG)
-        self.write_api = self.influx_client.write_api()
-        
-        # MQTT Client setup
-        self.client = mqtt.Client(CLIENT_ID)
-        self.client.username_pw_set(USER, PASSWORD)
-        self.client.on_connect = self.on_connect
-        self.client.on_message = self.on_message
+        # Initialize components
+        self.mqtt_manager = MQTTManager(
+            on_connect_callback=self.on_connect,
+            on_message_callback=self.on_message
+        )
+        self.db_manager = InfluxDBManager()
         
         # GUI Elements
         self.create_widgets()
         
-        # Connection status
-        self.connected = False
-        
         # Start FastAPI server immediately
-        self.start_fastapi()
+        self.api_server = APIServer(log_callback=self.log_message)
+        self.api_server.start()
         self.log_message("Data Proxy server started on port 8080")
         
         # Start alarm checking thread
@@ -73,23 +34,21 @@ class MQTTClientGUI:
         self.alarm_check_thread.start()
 
     def toggle_connection(self):
-        if not self.connected:
+        if not self.mqtt_manager.is_connected():
             try:
-                self.client.connect(MQTT_BROKER, MQTT_PORT, keepalive=60)
-                self.client.loop_start()
-                self.conn_button.configure(text="Disconnect")
-                self.send_button.state(['!disabled'])
-                self.status_label.configure(text="Connected to broker")
-                self.connected = True
+                if self.mqtt_manager.connect():
+                    self.conn_button.configure(text="Disconnect")
+                    self.send_button.state(['!disabled'])
+                    self.status_label.configure(text="Connected to broker")
+                else:
+                    raise Exception("Failed to connect")
             except Exception as e:
                 messagebox.showerror("Connection Error", str(e))
         else:
-            self.client.loop_stop()
-            self.client.disconnect()
+            self.mqtt_manager.disconnect()
             self.conn_button.configure(text="Connect")
             self.send_button.state(['disabled'])
             self.status_label.configure(text="Disconnected")
-            self.connected = False
 
     def create_widgets(self):
         # Connection frame
@@ -162,58 +121,15 @@ class MQTTClientGUI:
         self.status_label.pack(fill="x")
 
     def send_predefined_message(self, topic, message):
-        if not self.connected:
+        if not self.mqtt_manager.is_connected():
             messagebox.showwarning("Warning", "Not connected to broker")
             return
             
-        result = self.client.publish(topic, message)
-        if result[0] == 0:
-            self.status_label.configure(text=f"Message sent: {topic} -> {message}")
+        success, message = self.mqtt_manager.publish(topic, message)
+        if success:
+            self.status_label.configure(text=message)
         else:
             messagebox.showerror("Error", "Failed to send message")
-
-    def start_fastapi(self):
-        @self.app.post("/sensor-data")
-        async def receive_sensor_data(data: SensorData):
-            print(f"Received data: {data}")
-            self.log_message(f"Received sensor data: {data}")
-            try:
-                if data.timestamp:
-                    device_timestamp = datetime.strptime(data.timestamp, "%Y-%m-%dT%H:%M:%SZ")
-                
-                # Compute latency
-                latency = datetime.now() - device_timestamp
-                print(f"Latency: {latency.microseconds / 1000} ms")
-
-                # Write latency to InfluxDB
-                self.write_api.write(
-                    bucket=INFLUXDB_BUCKET,
-                    record=[
-                        Point("latency").field("value", latency.microseconds / 1000)
-                    ]
-                )
-                
-                # Write to InfluxDB
-                for location, temp, hum in [("indoor", data.tempIndoor, data.humIndoor),
-                                         ("outdoor", data.tempOutdoor, data.humOutdoor)]:
-                    self.write_api.write(
-                        bucket=INFLUXDB_BUCKET,
-                        record=[
-                            Point("temperature").tag("location", location).field("value", temp),
-                            Point("humidity").tag("location", location).field("value", hum)
-                        ]
-                    )
-                
-                return {"status": "Success"}
-            except Exception as e:
-                self.log_message(f"Error: {str(e)}")
-                raise HTTPException(status_code=500, detail=str(e))
-
-        # Run FastAPI in a separate thread
-        def run_fastapi():
-            uvicorn.run(self.app, host="0.0.0.0", port=8080)
-            
-        threading.Thread(target=run_fastapi, daemon=True).start()
 
     def log_message(self, message):
         self.log_text.configure(state='normal')
@@ -222,7 +138,7 @@ class MQTTClientGUI:
         self.log_text.configure(state='disabled')
 
     def send_message(self):
-        if not self.connected:
+        if not self.mqtt_manager.is_connected():
             messagebox.showwarning("Warning", "Not connected to broker")
             return
             
@@ -233,9 +149,9 @@ class MQTTClientGUI:
             messagebox.showwarning("Warning", "Topic and message cannot be empty")
             return
             
-        result = self.client.publish(topic, message)
-        if result[0] == 0:
-            self.status_label.configure(text=f"Message sent: {topic} -> {message}")
+        success, status = self.mqtt_manager.publish(topic, message)
+        if success:
+            self.status_label.configure(text=status)
             self.message_entry.delete(0, tk.END)
         else:
             messagebox.showerror("Error", "Failed to send message")
@@ -250,7 +166,7 @@ class MQTTClientGUI:
         print(f"Message received: {msg.topic} -> {msg.payload.decode()}")
 
     def send_sampling_rate(self):
-        if not self.connected:
+        if not self.mqtt_manager.is_connected():
             messagebox.showwarning("Warning", "Not connected to broker")
             return
         
@@ -259,8 +175,8 @@ class MQTTClientGUI:
             if rate <= 0:
                 raise ValueError("Sampling rate must be positive")
             
-            result = self.client.publish("hvac/sampling_rate", str(rate))
-            if result[0] == 0:
+            success, message = self.mqtt_manager.publish("hvac/sampling_rate", str(rate))
+            if success:
                 self.status_label.configure(text=f"Sampling rate set to: {rate} ms")
             else:
                 messagebox.showerror("Error", "Failed to send sampling rate")
@@ -270,26 +186,15 @@ class MQTTClientGUI:
     def check_alarms(self):
         """Check for recent alarms every 10 seconds and control LED"""
         while True:
-            if self.connected:
+            if self.mqtt_manager.is_connected():
                 try:
-                    has_recent_alarms = self.influx_client.query_api().query(f'''
-                        from(bucket: "{INFLUXDB_BUCKET}")
-                        |> range(start: -10s)
-                        |> filter(fn: (r) => r._measurement == "temperature_alarms")
-                    ''')
-                    
-                    # Convert query result to boolean
-                    led_state = "on" if len(list(has_recent_alarms)) > 0 else "off"
+                    has_alarms = self.db_manager.check_recent_alarms()
                     
                     # Send MQTT message to control LED
-                    self.client.publish("hvac/led", led_state)
+                    led_state = "on" if has_alarms else "off"
+                    self.mqtt_manager.publish("hvac/led", led_state)
                     self.log_message(f"LED control: {led_state} (based on alarms)")
                 except Exception as e:
                     self.log_message(f"Error checking alarms: {str(e)}")
             
             time.sleep(10)
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = MQTTClientGUI(root)
-    root.mainloop()
