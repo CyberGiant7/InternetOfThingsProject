@@ -1,5 +1,4 @@
 import requests
-import time
 from pytz import timezone
 from datetime import datetime
 import logging
@@ -43,7 +42,6 @@ class WeatherAPIClient:
             # Adjust for timezone italian time zone (UTC+2)
             timestamp = datetime.now(tz=timezone('Europe/Rome'))
             
-            # print(f"Weather data fetched at {timestamp}: {weather_data}")
             return {
                 "timestamp": timestamp,
                 "temperature": weather_data["main"]["temp"],
