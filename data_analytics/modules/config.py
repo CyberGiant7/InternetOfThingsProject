@@ -6,7 +6,8 @@ load_dotenv()
 
 # Database configurations
 INFLUXDB_CONFIG = {
-    "url": "http://localhost:8086",
+    # "url": "http://localhost:8086",
+    "url": "https://eu-central-1-1.aws.cloud2.influxdata.com",
     "token": os.getenv("INFLUXDB_TOKEN"),  # Get from environment variable
     "org": "ProgettoIot",
     "bucket": "ProgettoIot"

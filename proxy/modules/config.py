@@ -13,8 +13,9 @@ USER = "arduino"
 PASSWORD = "progettoiot"
 
 # InfluxDB Configuration
-INFLUXDB_URL = "http://localhost:8086"
-INFLUXDB_TOKEN = os.getenv("INFLUXDB_TOKEN"),  # Get from environment variable
+# INFLUXDB_URL = "http://localhost:8086"
+INFLUXDB_URL = "https://eu-central-1-1.aws.cloud2.influxdata.com"
+INFLUXDB_TOKEN = os.getenv("INFLUXDB_TOKEN")  # Get from environment variable
 INFLUXDB_ORG = "ProgettoIot"
 INFLUXDB_BUCKET = "ProgettoIot"
 
