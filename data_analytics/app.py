@@ -131,8 +131,6 @@ def update_predictions():
                 ]
             except Exception as e:
                 print(f"Error querying API weather data: {e}")
-                continue
-            
             
         
         # Read current HVAC status from file system
