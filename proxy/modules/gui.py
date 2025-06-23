@@ -74,7 +74,7 @@ class MQTTClientGUI:
         ttk.Button(sampling_frame, text="Set Rate", 
                   command=self.send_sampling_rate).pack(side="left")
         
-        # Existing command buttons
+        # Add buttons for predefined commands
         for cmd_name, cmd_data in COMMANDS.items():
             btn = ttk.Button(cmd_frame, text=cmd_name,
                            command=lambda t=cmd_data["topic"], m=cmd_data["message"]: 
