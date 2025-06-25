@@ -120,6 +120,7 @@ def update_predictions():
             
             try:
                 # Query stored API weather data
+            
                 weather_data = db_manager.query_api_weather_data(ANALYSIS_CONFIG["measure_every_seconds"])
                 # Update global data structure with API weather information
                 # Convert timezone (add 2 hours) and format timestamps

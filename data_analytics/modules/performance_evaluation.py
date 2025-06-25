@@ -256,11 +256,9 @@ class PerformanceEvaluator:
                 
                 # Update historical metrics for this horizon
                 current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                print(self.forecast_metrics)
                 
                 # Append new metrics to historical tracking
                 self.forecast_metrics[horizon]["mae"].append(mae)
-                print(self.forecast_metrics[horizon]["mae"])
                 self.forecast_metrics[horizon]["mse"].append(mse)
                 self.forecast_metrics[horizon]["rmse"].append(rmse)
                 self.forecast_metrics[horizon]["timestamps"].append(current_time)
