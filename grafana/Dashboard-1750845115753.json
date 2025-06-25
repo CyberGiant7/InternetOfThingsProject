@@ -1,8 +1,8 @@
 {
   "__inputs": [
     {
-      "name": "DS_INFLUXDB",
-      "label": "influxdb",
+      "name": "DS_IOT",
+      "label": "iot",
       "description": "",
       "type": "datasource",
       "pluginId": "influxdb",
@@ -21,7 +21,7 @@
       "type": "grafana",
       "id": "grafana",
       "name": "Grafana",
-      "version": "11.5.2"
+      "version": "12.1.0-90058"
     },
     {
       "type": "datasource",
@@ -61,7 +61,7 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "${DS_INFLUXDB}"
+        "uid": "${DS_IOT}"
       },
       "fieldConfig": {
         "defaults": {
@@ -111,7 +111,7 @@
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               },
               {
                 "color": "red",
@@ -149,7 +149,7 @@
         ]
       },
       "gridPos": {
-        "h": 8,
+        "h": 11,
         "w": 12,
         "x": 0,
         "y": 0
@@ -168,16 +168,20 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "11.5.2",
+      "pluginVersion": "12.1.0-90058",
       "targets": [
         {
           "alias": "",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_IOT}"
+          },
           "groupBy": [],
           "hide": false,
           "measurement": "temperature",
           "orderByTime": "ASC",
           "policy": "default",
-          "query": "SELECT \"value\" FROM \"temperature\" WHERE (\"location\"::tag = 'indoor') AND $timeFilter",
+          "query": "from(bucket: \"ProgettoIot\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"_measurement\"] == \"temperature\")\r\n  |> filter(fn: (r) => r[\"_field\"] == \"value\")\r\n  |> filter(fn: (r) => r[\"location\"] == \"indoor\")\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> yield(name: \"mean\")\r\n",
           "rawQuery": false,
           "refId": "tempIndoor",
           "resultFormat": "time_series",
@@ -197,22 +201,19 @@
               "operator": "=",
               "value": "indoor"
             }
-          ],
-          "datasource": {
-            "type": "influxdb",
-            "uid": "${DS_INFLUXDB}"
-          }
+          ]
         },
         {
           "datasource": {
             "type": "influxdb",
-            "uid": "${DS_INFLUXDB}"
+            "uid": "${DS_IOT}"
           },
           "groupBy": [],
           "hide": false,
           "measurement": "temperature",
           "orderByTime": "ASC",
           "policy": "default",
+          "query": "from(bucket: \"ProgettoIot\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"_measurement\"] == \"temperature\")\r\n  |> filter(fn: (r) => r[\"_field\"] == \"value\")\r\n  |> filter(fn: (r) => r[\"location\"] == \"outdoor\")\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> yield(name: \"mean\")\r\n",
           "refId": "Temp Outdoor",
           "resultFormat": "time_series",
           "select": [
@@ -240,7 +241,7 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "${DS_INFLUXDB}"
+        "uid": "${DS_IOT}"
       },
       "fieldConfig": {
         "defaults": {
@@ -288,7 +289,7 @@
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               },
               {
                 "color": "red",
@@ -326,7 +327,7 @@
         ]
       },
       "gridPos": {
-        "h": 8,
+        "h": 11,
         "w": 12,
         "x": 12,
         "y": 0
@@ -345,19 +346,19 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "11.5.2",
+      "pluginVersion": "12.1.0-90058",
       "targets": [
         {
           "datasource": {
             "type": "influxdb",
-            "uid": "${DS_INFLUXDB}"
+            "uid": "${DS_IOT}"
           },
           "groupBy": [],
           "hide": false,
           "measurement": "humidity",
           "orderByTime": "ASC",
           "policy": "default",
-          "query": "SELECT \"value\" FROM \"humidity\" WHERE (\"location\"::tag = 'indoor') AND $timeFilter",
+          "query": "from(bucket: \"ProgettoIot\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"_measurement\"] == \"humidity\")\r\n  |> filter(fn: (r) => r[\"location\"] == \"indoor\")\r\n  |> filter(fn: (r) => r[\"_field\"] == \"value\")\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> yield(name: \"mean\")",
           "rawQuery": false,
           "refId": "humIndoor",
           "resultFormat": "time_series",
@@ -382,13 +383,14 @@
         {
           "datasource": {
             "type": "influxdb",
-            "uid": "${DS_INFLUXDB}"
+            "uid": "${DS_IOT}"
           },
           "groupBy": [],
           "hide": false,
           "measurement": "humidity",
           "orderByTime": "ASC",
           "policy": "default",
+          "query": "from(bucket: \"ProgettoIot\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"_measurement\"] == \"humidity\")\r\n  |> filter(fn: (r) => r[\"location\"] == \"outdoor\")\r\n  |> filter(fn: (r) => r[\"_field\"] == \"value\")\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> yield(name: \"mean\")",
           "refId": "humOutdoor",
           "resultFormat": "time_series",
           "select": [
@@ -416,7 +418,7 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "${DS_INFLUXDB}"
+        "uid": "${DS_IOT}"
       },
       "fieldConfig": {
         "defaults": {
@@ -424,12 +426,13 @@
             "mode": "palette-classic"
           },
           "custom": {
-            "axisBorderShow": false,
+            "axisBorderShow": true,
             "axisCenteredZero": false,
             "axisColorMode": "text",
-            "axisLabel": "",
+            "axisGridShow": true,
+            "axisLabel": "Count",
             "axisPlacement": "auto",
-            "fillOpacity": 80,
+            "fillOpacity": 50,
             "gradientMode": "none",
             "hideFrom": {
               "legend": false,
@@ -444,13 +447,15 @@
               "mode": "off"
             }
           },
+          "displayName": "Alarm count",
+          "fieldMinMax": false,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               }
             ]
           }
@@ -458,15 +463,15 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 8,
+        "h": 9,
         "w": 24,
         "x": 0,
-        "y": 8
+        "y": 11
       },
       "id": 3,
       "options": {
         "barRadius": 0,
-        "barWidth": 0.97,
+        "barWidth": 1,
         "fullHighlight": false,
         "groupWidth": 0.7,
         "legend": {
@@ -478,17 +483,23 @@
         "orientation": "auto",
         "showValue": "auto",
         "stacking": "none",
+        "text": {},
         "tooltip": {
           "hideZeros": false,
-          "mode": "single",
+          "mode": "multi",
           "sort": "none"
         },
+        "xField": "Time",
         "xTickLabelRotation": 0,
-        "xTickLabelSpacing": 0
+        "xTickLabelSpacing": 100
       },
-      "pluginVersion": "11.5.2",
+      "pluginVersion": "12.1.0-90058",
       "targets": [
         {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_IOT}"
+          },
           "groupBy": [
             {
               "params": [
@@ -506,6 +517,7 @@
           "measurement": "temperature_alarms",
           "orderByTime": "ASC",
           "policy": "default",
+          "query": "from(bucket: \"ProgettoIot\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => \r\n    r._measurement == \"temperature_alarms\" and\r\n    r._field == \"temperature_difference\"\r\n  )\r\n  |> aggregateWindow(every: 1m, fn: count, createEmpty: true)\r\n  |> yield(name: \"count\")",
           "refId": "A",
           "resultFormat": "table",
           "select": [
@@ -522,11 +534,7 @@
               }
             ]
           ],
-          "tags": [],
-          "datasource": {
-            "type": "influxdb",
-            "uid": "${DS_INFLUXDB}"
-          }
+          "tags": []
         }
       ],
       "title": "Accumulative count of alarm events",
@@ -535,7 +543,180 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "${DS_INFLUXDB}"
+        "uid": "${DS_IOT}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": true,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "celsius"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "custom.fillOpacity",
+                "value": 50
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "dark-red",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.insertNulls",
+                "value": 60000
+              },
+              {
+                "id": "displayName",
+                "value": "Alarm"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Actual indoor temperature"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Actual outdoor temperature"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 13,
+        "w": 24,
+        "x": 0,
+        "y": 20
+      },
+      "id": 9,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.1.0-90058",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_IOT}"
+          },
+          "query": "from(bucket: \"ProgettoIot\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => \r\n    r._measurement == \"temperature\" and\r\n    r._field == \"value\" and\r\n    r.location == \"indoor\"\r\n  )\r\n  |> aggregateWindow(every: 1m, fn: mean, createEmpty: true)\r\n  |> yield(name: \"Temperatura normale\")\r\n",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_IOT}"
+          },
+          "hide": false,
+          "query": "from(bucket: \"ProgettoIot\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"_measurement\"] == \"temperature\")\r\n  |> filter(fn: (r) => r[\"_field\"] == \"value\")\r\n  |> filter(fn: (r) => r[\"location\"] == \"outdoor\")\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> yield(name: \"mean\")\r\n",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_IOT}"
+          },
+          "hide": false,
+          "query": "alarms = from(bucket: \"ProgettoIot\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r._measurement == \"temperature_alarms\")\r\n  |> map(fn: (r) => ({ r with _value: 1 }))\r\n  |> aggregateWindow(every: 30s, fn: sum, createEmpty: false)\r\n  |> keep(columns: [\"_time\", \"_value\"])\r\n\r\ntemperature = from(bucket: \"ProgettoIot\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => \r\n    r._measurement == \"temperature\" and\r\n    r._field == \"value\" and\r\n    r.location == \"indoor\"\r\n  )\r\n  |> aggregateWindow(every: 30s, fn: mean, createEmpty: false)\r\n  |> keep(columns: [\"_time\", \"_value\"])\r\n\r\njoin(\r\n  tables: {t: temperature, a: alarms},\r\n  on: [\"_time\"]\r\n)\r\n|> map(fn: (r) => ({\r\n  _time: r._time,\r\n  _value: if r._value_a > 0 then r._value_t else float(v: 0),\r\n  _field: \"value\",\r\n  _measurement: \"temperature\"\r\n}))\r\n|> yield(name: \"Temperatura con allarme\")\r\n",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_IOT}"
+          },
+          "hide": true,
+          "query": "from(bucket: \"ProgettoIot\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r._measurement == \"temperature_alarms\")\r\n  |> aggregateWindow(every: 30s, fn: mean, createEmpty: false)",
+          "refId": "D"
+        }
+      ],
+      "title": "Actual temperature with Alarm",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_IOT}"
       },
       "fieldConfig": {
         "defaults": {
@@ -566,7 +747,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
-            "spanNulls": false,
+            "spanNulls": true,
             "stacking": {
               "group": "A",
               "mode": "none"
@@ -582,19 +763,44 @@
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               }
             ]
           },
           "unit": "celsius"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "predicted_temperature"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Predicted temperature (1m)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "temperature value {location=\"indoor\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Actual indoor temperature"
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
         "w": 6,
         "x": 0,
-        "y": 16
+        "y": 33
       },
       "id": 5,
       "options": {
@@ -610,13 +816,13 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "11.5.2",
+      "pluginVersion": "12.1.0-90058",
       "targets": [
         {
           "alias": "Actual indoor temperature",
           "datasource": {
             "type": "influxdb",
-            "uid": "${DS_INFLUXDB}"
+            "uid": "${DS_IOT}"
           },
           "groupBy": [
             {
@@ -636,6 +842,7 @@
           "measurement": "temperature",
           "orderByTime": "ASC",
           "policy": "default",
+          "query": "from(bucket: \"ProgettoIot\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => \r\n    r._measurement == \"temperature\" and\r\n    r._field == \"value\" and\r\n    r.location == \"indoor\"\r\n  )\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> yield(name: \"mean\")\r\n",
           "refId": "Actual temperature",
           "resultFormat": "time_series",
           "select": [
@@ -662,10 +869,15 @@
         },
         {
           "alias": "Predicted indoor temperature",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_IOT}"
+          },
           "groupBy": [],
           "measurement": "temperature_predictions",
           "orderByTime": "ASC",
           "policy": "default",
+          "query": "from(bucket: \"ProgettoIot\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => \r\n    r._measurement == \"temperature_predictions\" and\r\n    r._field == \"predicted_temperature\" and\r\n    r.forecast_horizon == \"1min\"\r\n  )\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> yield(name: \"mean\")\r\n",
           "refId": "Predicted temperature",
           "resultFormat": "time_series",
           "select": [
@@ -684,11 +896,7 @@
               "operator": "=",
               "value": "1min"
             }
-          ],
-          "datasource": {
-            "type": "influxdb",
-            "uid": "${DS_INFLUXDB}"
-          }
+          ]
         }
       ],
       "title": "1min prediction",
@@ -697,7 +905,7 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "${DS_INFLUXDB}"
+        "uid": "${DS_IOT}"
       },
       "fieldConfig": {
         "defaults": {
@@ -728,7 +936,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
-            "spanNulls": false,
+            "spanNulls": true,
             "stacking": {
               "group": "A",
               "mode": "none"
@@ -744,19 +952,44 @@
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               }
             ]
           },
           "unit": "celsius"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "temperature value {location=\"indoor\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Actual indoor temperature"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "temperature_predictions predicted_temperature {forecast_horizon=\"10min\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Predicted temperature (10m)"
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
         "w": 6,
         "x": 6,
-        "y": 16
+        "y": 33
       },
       "id": 4,
       "options": {
@@ -768,17 +1001,17 @@
         },
         "tooltip": {
           "hideZeros": false,
-          "mode": "single",
+          "mode": "multi",
           "sort": "none"
         }
       },
-      "pluginVersion": "11.5.2",
+      "pluginVersion": "12.1.0-90058",
       "targets": [
         {
           "alias": "Actual indoor temperature",
           "datasource": {
             "type": "influxdb",
-            "uid": "${DS_INFLUXDB}"
+            "uid": "${DS_IOT}"
           },
           "groupBy": [
             {
@@ -798,6 +1031,7 @@
           "measurement": "temperature",
           "orderByTime": "ASC",
           "policy": "default",
+          "query": "from(bucket: \"ProgettoIot\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => \r\n    r._measurement == \"temperature\" and\r\n    r._field == \"value\" and\r\n    r.location == \"indoor\"\r\n  )\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> yield(name: \"mean\")\r\n",
           "refId": "Actual temperature",
           "resultFormat": "time_series",
           "select": [
@@ -824,10 +1058,15 @@
         },
         {
           "alias": "Predicted indoor temperature",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_IOT}"
+          },
           "groupBy": [],
           "measurement": "temperature_predictions",
           "orderByTime": "ASC",
           "policy": "default",
+          "query": "from(bucket: \"ProgettoIot\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => \r\n    r._measurement == \"temperature_predictions\" and\r\n    r._field == \"predicted_temperature\" and\r\n    r.forecast_horizon == \"10min\"\r\n  )\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> yield(name: \"mean\")\r\n",
           "refId": "Predicted temperature",
           "resultFormat": "time_series",
           "select": [
@@ -846,11 +1085,7 @@
               "operator": "=",
               "value": "10min"
             }
-          ],
-          "datasource": {
-            "type": "influxdb",
-            "uid": "${DS_INFLUXDB}"
-          }
+          ]
         }
       ],
       "title": "10min prediction",
@@ -859,7 +1094,7 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "${DS_INFLUXDB}"
+        "uid": "${DS_IOT}"
       },
       "fieldConfig": {
         "defaults": {
@@ -890,7 +1125,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
-            "spanNulls": false,
+            "spanNulls": true,
             "stacking": {
               "group": "A",
               "mode": "none"
@@ -906,19 +1141,44 @@
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               }
             ]
           },
           "unit": "celsius"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "temperature value {location=\"indoor\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Actual indoor temperature"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "temperature_predictions predicted_temperature {forecast_horizon=\"20min\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Predicted temperature (20m)"
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
         "w": 6,
         "x": 12,
-        "y": 16
+        "y": 33
       },
       "id": 6,
       "options": {
@@ -930,17 +1190,17 @@
         },
         "tooltip": {
           "hideZeros": false,
-          "mode": "single",
+          "mode": "multi",
           "sort": "none"
         }
       },
-      "pluginVersion": "11.5.2",
+      "pluginVersion": "12.1.0-90058",
       "targets": [
         {
           "alias": "Actual indoor temperature",
           "datasource": {
             "type": "influxdb",
-            "uid": "${DS_INFLUXDB}"
+            "uid": "${DS_IOT}"
           },
           "groupBy": [
             {
@@ -960,6 +1220,7 @@
           "measurement": "temperature",
           "orderByTime": "ASC",
           "policy": "default",
+          "query": "from(bucket: \"ProgettoIot\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => \r\n    r._measurement == \"temperature\" and\r\n    r._field == \"value\" and\r\n    r.location == \"indoor\"\r\n  )\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> yield(name: \"mean\")\r\n",
           "refId": "Actual temperature",
           "resultFormat": "time_series",
           "select": [
@@ -986,10 +1247,15 @@
         },
         {
           "alias": "Predicted indoor temperature",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_IOT}"
+          },
           "groupBy": [],
           "measurement": "temperature_predictions",
           "orderByTime": "ASC",
           "policy": "default",
+          "query": "from(bucket: \"ProgettoIot\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => \r\n    r._measurement == \"temperature_predictions\" and\r\n    r._field == \"predicted_temperature\" and\r\n    r.forecast_horizon == \"20min\"\r\n  )\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> yield(name: \"mean\")\r\n",
           "refId": "Predicted temperature",
           "resultFormat": "time_series",
           "select": [
@@ -1008,11 +1274,7 @@
               "operator": "=",
               "value": "20min"
             }
-          ],
-          "datasource": {
-            "type": "influxdb",
-            "uid": "${DS_INFLUXDB}"
-          }
+          ]
         }
       ],
       "title": "20min prediction",
@@ -1021,7 +1283,7 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "${DS_INFLUXDB}"
+        "uid": "${DS_IOT}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1052,7 +1314,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
-            "spanNulls": false,
+            "spanNulls": true,
             "stacking": {
               "group": "A",
               "mode": "none"
@@ -1068,19 +1330,44 @@
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               }
             ]
           },
           "unit": "celsius"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "temperature value {location=\"indoor\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Actual indoor temperature"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "temperature_predictions predicted_temperature {forecast_horizon=\"30min\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Predicted temperature (30m)"
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
         "w": 6,
         "x": 18,
-        "y": 16
+        "y": 33
       },
       "id": 7,
       "options": {
@@ -1092,17 +1379,17 @@
         },
         "tooltip": {
           "hideZeros": false,
-          "mode": "single",
+          "mode": "multi",
           "sort": "none"
         }
       },
-      "pluginVersion": "11.5.2",
+      "pluginVersion": "12.1.0-90058",
       "targets": [
         {
           "alias": "Actual indoor temperature",
           "datasource": {
             "type": "influxdb",
-            "uid": "${DS_INFLUXDB}"
+            "uid": "${DS_IOT}"
           },
           "groupBy": [
             {
@@ -1122,6 +1409,7 @@
           "measurement": "temperature",
           "orderByTime": "ASC",
           "policy": "default",
+          "query": "from(bucket: \"ProgettoIot\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => \r\n    r._measurement == \"temperature\" and\r\n    r._field == \"value\" and\r\n    r.location == \"indoor\"\r\n  )\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> yield(name: \"mean\")\r\n",
           "refId": "Actual temperature",
           "resultFormat": "time_series",
           "select": [
@@ -1148,10 +1436,15 @@
         },
         {
           "alias": "Predicted indoor temperature",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_IOT}"
+          },
           "groupBy": [],
           "measurement": "temperature_predictions",
           "orderByTime": "ASC",
           "policy": "default",
+          "query": "from(bucket: \"ProgettoIot\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => \r\n    r._measurement == \"temperature_predictions\" and\r\n    r._field == \"predicted_temperature\" and\r\n    r.forecast_horizon == \"30min\"\r\n  )\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> yield(name: \"mean\")\r\n",
           "refId": "Predicted temperature",
           "resultFormat": "time_series",
           "select": [
@@ -1170,11 +1463,7 @@
               "operator": "=",
               "value": "30min"
             }
-          ],
-          "datasource": {
-            "type": "influxdb",
-            "uid": "${DS_INFLUXDB}"
-          }
+          ]
         }
       ],
       "title": "30min prediction",
@@ -1183,7 +1472,7 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "${DS_INFLUXDB}"
+        "uid": "${DS_IOT}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1224,6 +1513,7 @@
               "mode": "off"
             }
           },
+          "displayName": "Latency",
           "fieldMinMax": false,
           "mappings": [],
           "thresholds": {
@@ -1231,11 +1521,7 @@
             "steps": [
               {
                 "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
+                "value": 0
               }
             ]
           },
@@ -1247,7 +1533,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 24
+        "y": 41
       },
       "id": 8,
       "options": {
@@ -1259,13 +1545,17 @@
         },
         "tooltip": {
           "hideZeros": false,
-          "mode": "single",
+          "mode": "multi",
           "sort": "none"
         }
       },
-      "pluginVersion": "11.5.2",
+      "pluginVersion": "12.1.0-89781",
       "targets": [
         {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_IOT}"
+          },
           "groupBy": [
             {
               "params": [
@@ -1277,6 +1567,7 @@
           "measurement": "latency",
           "orderByTime": "ASC",
           "policy": "default",
+          "query": "from(bucket: \"ProgettoIot\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => \r\n    r._measurement == \"latency\" and\r\n    r._field == \"value\"\r\n  )\r\n  |> aggregateWindow(every: 10s, fn: mean, createEmpty: false)\r\n  |> yield(name: \"mean\")\r\n",
           "refId": "A",
           "resultFormat": "time_series",
           "select": [
@@ -1293,11 +1584,7 @@
               }
             ]
           ],
-          "tags": [],
-          "datasource": {
-            "type": "influxdb",
-            "uid": "${DS_INFLUXDB}"
-          }
+          "tags": []
         }
       ],
       "title": "Latency",
@@ -1305,19 +1592,19 @@
     }
   ],
   "refresh": "",
-  "schemaVersion": 40,
+  "schemaVersion": 41,
   "tags": [],
   "templating": {
     "list": []
   },
   "time": {
-    "from": "now-6h",
+    "from": "now-24h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
   "title": "Dashboard",
   "uid": "eeextp8siaiv4d",
-  "version": 18,
+  "version": 6,
   "weekStart": ""
 }
